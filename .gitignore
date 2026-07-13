@@ -1,0 +1,15 @@
+.DS_Store
+**/.DS_Store
+
+.env
+.env.*
+!.env.example
+
+node_modules/
+dist/
+.vercel/
+*.log
+
+# Local research recordings are not part of the prototype distribution.
+research/*.MP4
+research/*.mp4
