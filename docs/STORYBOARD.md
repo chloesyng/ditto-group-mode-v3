@@ -655,7 +655,7 @@ Golden Hour Beach Cookout
 An evening designed around collaboration,
 playfulness and meaningful conversations.
 
-Western University Beach
+Dockweiler State Beach
 
 Approximately 3 Hours
 
@@ -1058,9 +1058,9 @@ Example:
 
 Olivia
 
-Western University
+USC
 
-Interaction Design
+Communication
 
 ☕ Cafés
 
@@ -1755,9 +1755,9 @@ then stay for the sunset.
 
 Friday, July 17
 
-7:00 PM
+6:00 PM
 
-Western Beach
+Dockweiler State Beach
 
 ---
 
@@ -1914,9 +1914,9 @@ Golden Hour Beach Cookout
 
 Friday, July 17
 
-7:00 PM–10:00 PM
+6:00 PM–8:30 PM
 
-Western Beach
+Dockweiler State Beach
 
 Meet beside the main entrance.
 
@@ -2308,9 +2308,9 @@ Tomorrow 👀
 
 Golden Hour Beach Cookout
 
-Friday at 7:00 PM
+Friday at 6:00 PM
 
-Western Beach
+Dockweiler State Beach
 
 Everyone's still in.
 

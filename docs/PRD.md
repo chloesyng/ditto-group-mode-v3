@@ -340,7 +340,7 @@ selects the highest-quality group;
 identifies a backup group or backup participant where possible.
 Stage 3: Soft confirmation
 Before revealing identities, Ditto verifies attendance:
-found a group near Western for Friday night.
+found a group in Los Angeles for Friday night.
 cooking, a tiny competition, and something that stays anonymous until the end.
 still down?
 The spot is temporarily held until the user confirms.
