@@ -313,7 +313,6 @@ function renderLanding() {
               Try Group Mode
               <span class="arrow" aria-hidden="true">-&gt;</span>
             </button>
-            <span class="trailer-label">Watch Trailer</span>
           </div>
         </div>
 
