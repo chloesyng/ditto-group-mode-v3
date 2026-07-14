@@ -1,6 +1,25 @@
 const app = document.querySelector("#app");
 let activeTimer;
 let participantTimers = [];
+let participantTimerKeys = new Set();
+let participantEntrySequence = 0;
+
+const MINUTES_PER_DAY = 24 * 60;
+const SIMULATED_WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+function simulatedTimestamp(year, monthIndex, day, hour, minute = 0) {
+  return Math.floor(Date.UTC(year, monthIndex, day, hour, minute) / 60000);
+}
+
+const simulatedSchedule = {
+  preDateStartTimestampMinutes: simulatedTimestamp(2026, 6, 10, 19, 58),
+  liveDateTimestampMinutes: simulatedTimestamp(2026, 6, 17, 18),
+  midnightTimestampMinutes: simulatedTimestamp(2026, 6, 18, 0),
+};
+
+const simulatedTimeline = {
+  currentTimestampMinutes: simulatedSchedule.preDateStartTimestampMinutes,
+};
 
 const applicants = [
   {
@@ -172,7 +191,7 @@ const beachDateFlow = {
   venue: "Dockweiler State Beach",
   environment: "beach cookout",
   startTime: "6:00 PM",
-  startTimeMinutes: 18 * 60,
+  startTimestampMinutes: simulatedSchedule.liveDateTimestampMinutes,
   pairings: {
     couplePhoto: [["olivia", "lucas"], ["kayla", "jacob"]],
     armWrestling: [["olivia", "lucas"], ["kayla", "jacob"]],
@@ -187,7 +206,7 @@ const beachDateFlow = {
     { id: "private-window", durationMinutes: 10, type: "private_window", inputType: "name", waitForAllParticipants: true, shared: false },
     { id: "final-signal", durationMinutes: 0, delayBeforeMinutes: 15, type: "final_signal", inputType: "name", waitForAllParticipants: true, locksAfterSubmit: true, shared: false },
     { id: "waiting", durationMinutes: 0, type: "waiting", inputType: "none", shared: false },
-    { id: "midnight-reveal", durationMinutes: 0, targetTimeMinutes: 24 * 60, type: "midnight_reveal", inputType: "none", shared: false },
+    { id: "midnight-reveal", durationMinutes: 0, targetTimeMinutes: simulatedSchedule.midnightTimestampMinutes, type: "midnight_reveal", inputType: "none", shared: false },
   ],
   simulatedResults: {
     couplePhotoWinner: ["olivia", "lucas"],
@@ -209,7 +228,6 @@ function createLiveDateState() {
   return {
     activeParticipantId: "jacob",
     currentPhaseId: undefined,
-    simulatedTimeMinutes: undefined,
     phaseStartTimes: {},
     phaseCompletionTimes: {},
     submittedPhotos: {},
@@ -274,6 +292,7 @@ function resetTimer() {
   }
   participantTimers.forEach(clearTimeout);
   participantTimers = [];
+  participantTimerKeys = new Set();
 }
 
 function resetParticipantDemoState() {
@@ -282,6 +301,8 @@ function resetParticipantDemoState() {
   participantState.uploadedPostcard = undefined;
   participantState.postcardSelection = undefined;
   participantState.arrivalState = undefined;
+  participantEntrySequence = 0;
+  simulatedTimeline.currentTimestampMinutes = simulatedSchedule.preDateStartTimestampMinutes;
   liveDateState = createLiveDateState();
 }
 
@@ -575,13 +596,12 @@ function renderPhoneIntro({ jumpToLiveDate: shouldJumpToLiveDate = false } = {})
         <div class="phone-frame" aria-label="Jacob's phone">
           <div class="phone-hardware">
             <div class="dynamic-island"></div>
-            <div class="phone-status"><span data-phone-time>8:14</span><span>66</span></div>
+            <div class="phone-status"><span data-phone-time>${formatSimulatedTime(simulatedTimeline.currentTimestampMinutes).replace(/ (AM|PM)$/, "")}</span><span>66</span></div>
             <div class="messages-app">
               <header class="messages-header">
                 <span class="back-chevron">&lt;</span>
                 <strong class="messages-wordmark">Ditto</strong>
               </header>
-              <div class="message-date">Today 8:14 PM</div>
               <div class="message-thread" data-thread>
                 <div class="conversation-stack" data-conversation></div>
               </div>
@@ -598,8 +618,7 @@ function renderPhoneIntro({ jumpToLiveDate: shouldJumpToLiveDate = false } = {})
 
   app.querySelector(".phone-screen").addEventListener("click", handleParticipantAction);
   if (shouldJumpToLiveDate) {
-    const messageDate = app.querySelector(".message-date");
-    if (messageDate) messageDate.textContent = `Friday · ${beachDateFlow.startTime}`;
+    setSimulatedTime(simulatedSchedule.liveDateTimestampMinutes);
     beginLiveDate();
     return;
   }
@@ -621,10 +640,17 @@ function renderPhoneIntro({ jumpToLiveDate: shouldJumpToLiveDate = false } = {})
   }, 1750);
 }
 
-function scheduleParticipant(callback, delay) {
+function scheduleParticipant(callback, delay, key) {
+  if (key && participantTimerKeys.has(key)) return undefined;
+  if (key) participantTimerKeys.add(key);
   const timer = setTimeout(callback, delay);
   participantTimers.push(timer);
   return timer;
+}
+
+function nextParticipantEntryId(prefix) {
+  participantEntrySequence += 1;
+  return `pre-date:${prefix}:${participantEntrySequence}`;
 }
 
 function setParticipantScreen(screen) {
@@ -646,22 +672,25 @@ function scrollParticipantThread(behavior = "auto") {
 function appendConversation(html) {
   const conversation = participantConversation();
   conversation.insertAdjacentHTML("beforeend", html);
+  refreshSimulatedTimelineLabels();
   scrollParticipantThread();
   return conversation.lastElementChild;
 }
 
-function appendIncoming(paragraphs, className = "") {
+function appendIncoming(paragraphs, className = "", timestampMinutes = simulatedTimeline.currentTimestampMinutes) {
+  const entryId = nextParticipantEntryId("incoming");
   return appendConversation(`
-    <div class="message-row incoming-row ${className}">
-      <div class="message-bubble incoming">${paragraphs.map((line) => `<p>${line}</p>`).join("")}</div>
+    <div class="message-row incoming-row ${className}" data-entry-id="${entryId}" data-message-timestamp="${timestampMinutes}">
+      <div class="message-bubble incoming">${paragraphs.map((line) => `<p>${escapeHtml(line)}</p>`).join("")}<time class="live-message-time" data-message-time>${formatMessageTimestamp(timestampMinutes)}</time></div>
     </div>
   `);
 }
 
-function appendOutgoing(text) {
+function appendOutgoing(text, timestampMinutes = simulatedTimeline.currentTimestampMinutes) {
+  const entryId = nextParticipantEntryId("outgoing");
   return appendConversation(`
-    <div class="message-row outgoing-row">
-      <div class="message-bubble outgoing"><p>${escapeHtml(text)}</p></div>
+    <div class="message-row outgoing-row" data-entry-id="${entryId}" data-message-timestamp="${timestampMinutes}">
+      <div class="message-bubble outgoing"><p>${escapeHtml(text)}</p><time class="live-message-time" data-message-time>${formatMessageTimestamp(timestampMinutes)}</time></div>
     </div>
   `);
 }
@@ -677,8 +706,9 @@ function escapeHtml(value) {
 }
 
 function appendChoices(choices, id) {
+  const entryId = nextParticipantEntryId(`control-${id}`);
   return appendConversation(`
-    <div class="message-row participant-control-row" data-control="${id}">
+    <div class="message-row participant-control-row" data-entry-id="${entryId}" data-control="${id}">
       <div class="message-actions">
         ${choices.map((choice) => `<button class="message-action ${choice.primary ? "primary" : "secondary"}" data-participant-action="${choice.action}">${choice.label}</button>`).join("")}
       </div>
@@ -686,8 +716,11 @@ function appendChoices(choices, id) {
   `);
 }
 
-function appendTimeDivider(label) {
-  return appendConversation(`<div class="conversation-time-jump"><span>${label}</span></div>`);
+function appendTimeDivider(timestampMinutes = simulatedTimeline.currentTimestampMinutes) {
+  const lastDivider = [...participantConversation().querySelectorAll("[data-date-separator-timestamp]")].at(-1);
+  if (lastDivider && Number(lastDivider.dataset.dateSeparatorTimestamp) === timestampMinutes) return lastDivider;
+  const entryId = nextParticipantEntryId("divider");
+  return appendConversation(`<div class="conversation-time-jump" data-entry-id="${entryId}" data-date-separator-timestamp="${timestampMinutes}"><span>${formatRelativeDateTime(timestampMinutes)}</span></div>`);
 }
 
 function showParticipantTyping(callback, delay = 720) {
@@ -835,6 +868,7 @@ function declineParticipantFlow(controlId) {
 
 function acceptInvitation() {
   completeControl("invitation");
+  advanceSimulatedTime(2);
   appendOutgoing("I'm in");
   setParticipantScreen(9);
   showParticipantTyping(() => {
@@ -884,6 +918,7 @@ function renderMeetYourGroup() {
 
 function acceptGroupBrowse() {
   completeControl("group-browser");
+  advanceSimulatedTime(3);
   appendOutgoing("I'm down");
   setParticipantScreen(11);
   showParticipantTyping(() => {
@@ -913,6 +948,7 @@ function beginGroupLockIn() {
   update("kayla", "Kayla confirmed", 1250);
   update("lucas", "Lucas confirmed", 1950);
   scheduleParticipant(() => {
+    advanceSimulatedTime(6);
     appendIncoming(["Everyone's in.", "Your group is locked."]);
     renderAvailability();
   }, 2550);
@@ -952,8 +988,12 @@ function renderAvailability() {
 function submitAvailability() {
   if (participantState.availability.size === 0) return;
   completeControl("availability");
+  advanceSimulatedTime(5);
   appendOutgoing([...participantState.availability].join(" · "));
-  renderPlanningProgress();
+  scheduleParticipant(() => {
+    advanceSimulatedTime(5);
+    renderPlanningProgress();
+  }, 500);
 }
 
 function renderPlanningProgress() {
@@ -978,6 +1018,7 @@ function renderPlanningProgress() {
 
 function renderExperienceReveal() {
   setParticipantScreen(14);
+  advanceSimulatedTime(3);
   showParticipantTyping(() => {
     appendIncoming(["Okay.", "I found your plan."]);
     appendConversation(`
@@ -1035,6 +1076,7 @@ function simulateCalendarAdd(button) {
 
 function startPostcardPick(button) {
   button.closest(".inline-action-pair").querySelectorAll("button").forEach((item) => { item.disabled = true; });
+  advanceSimulatedTime(2);
   appendOutgoing("Got it");
   setParticipantScreen(16);
   showParticipantTyping(() => {
@@ -1073,6 +1115,7 @@ function simulatePostcardUpload() {
 
 function submitPostcard() {
   if (!participantState.uploadedPostcard) return;
+  advanceSimulatedTime(3);
   liveDateState.submittedPhotos.jacob = participantState.uploadedPostcard;
   selectedIds.forEach((participantId) => {
     if (!liveDateState.submittedPhotos[participantId]) {
@@ -1082,12 +1125,14 @@ function submitPostcard() {
   const upload = app.querySelector("[data-control='postcard-upload']");
   const caption = upload.querySelector(".postcard-caption").value.trim();
   completeControl("postcard-upload");
+  const sentEntryId = nextParticipantEntryId("postcard");
   const sent = appendConversation(`
-    <div class="message-row outgoing-row">
+    <div class="message-row outgoing-row" data-entry-id="${sentEntryId}" data-message-timestamp="${simulatedTimeline.currentTimestampMinutes}">
       <div class="sent-postcard">
         <img src="${participantState.uploadedPostcard}" alt="Your private postcard submission">
         ${caption ? "<p data-sent-caption></p>" : ""}
         <span>Sent privately</span>
+        <time class="live-message-time" data-message-time>${formatMessageTimestamp(simulatedTimeline.currentTimestampMinutes)}</time>
       </div>
     </div>
   `);
@@ -1133,6 +1178,7 @@ function confirmPostcardSelection() {
   if (!participantState.postcardSelection) return;
   if (!storePhotoSelection("jacob", participantState.postcardSelection)) return;
   completeControl("postcard-selection");
+  advanceSimulatedTime(2);
   appendOutgoing("Picked one");
   showParticipantTyping(() => {
     appendIncoming(["Got it.", "You'll find out why during the date."]);
@@ -1142,12 +1188,13 @@ function confirmPostcardSelection() {
 
 function renderOneDayReminder() {
   setParticipantScreen(17);
-  appendTimeDivider("Tomorrow · 6:00 PM");
+  setSimulatedTime(simulatedSchedule.liveDateTimestampMinutes);
+  appendTimeDivider();
   showParticipantTyping(() => {
     appendIncoming([
-      "Tomorrow 👀",
+      "Today 👀",
       beachDateFlow.title,
-      `Friday at ${beachDateFlow.startTime}`,
+      `Today at ${beachDateFlow.startTime}`,
       beachDateFlow.venue,
       "Everyone's still in.",
       "Looks like 22°C and clear.",
@@ -1167,7 +1214,7 @@ function showReminderDetails(button) {
     <div class="message-row attachment-row">
       <div class="compact-reminder-card">
         <img src="${groupPhotos.beachCookout}" alt="${beachDateFlow.title}">
-        <div><strong>Friday · ${beachDateFlow.startTime}</strong><span>${beachDateFlow.venue}</span><span>22°C and clear · Bring a light hoodie</span></div>
+        <div><strong>${simulatedWeekdayLabel(simulatedSchedule.liveDateTimestampMinutes)} · ${beachDateFlow.startTime}</strong><span>${beachDateFlow.venue}</span><span>22°C and clear · Bring a light hoodie</span></div>
       </div>
     </div>
   `);
@@ -1175,10 +1222,11 @@ function showReminderDetails(button) {
 
 function showDateStart() {
   completeControl("reminder");
+  setSimulatedTime(simulatedSchedule.liveDateTimestampMinutes);
   appendOutgoing("Got it");
   setParticipantScreen(18);
   scheduleParticipant(() => {
-    appendTimeDivider(`Friday · ${beachDateFlow.startTime}`);
+    appendTimeDivider();
     showParticipantTyping(() => {
       appendIncoming([
         "You're here.",
@@ -1207,8 +1255,7 @@ function confirmArrival() {
   appendOutgoing("We're all here");
   const live = app.querySelector(".group-live-status span");
   live.textContent = "Everyone arrived · Group Mode is live";
-  appendIncoming(["Perfect.", "Take a moment and say hi."]);
-  scheduleParticipant(beginLiveDate, 1250);
+  scheduleParticipant(beginLiveDate, 1250, "live-begin");
 }
 
 function checkMissingParticipant() {
@@ -1232,7 +1279,7 @@ function confirmArrivalAfterCheck() {
   appendOutgoing("We're ready");
   const live = app.querySelector(".group-live-status span");
   if (live) live.textContent = "Everyone arrived · Group Mode is live";
-  scheduleParticipant(beginLiveDate, 850);
+  scheduleParticipant(beginLiveDate, 850, "live-begin");
 }
 
 function liveDatePhase(id) {
@@ -1243,8 +1290,12 @@ function liveDateRecord(participantId = liveDateState.activeParticipantId) {
   return liveDateState.participants[participantId];
 }
 
-function cloneDateEntry(entry) {
-  return { ...entry };
+function cloneDateEntry(entry, id) {
+  const copy = { ...entry, id };
+  if ((copy.type === "incoming" || copy.type === "outgoing") && !Number.isFinite(copy.timestampMinutes)) {
+    copy.timestampMinutes = simulatedTimeline.currentTimestampMinutes;
+  }
+  return copy;
 }
 
 function disabledControlHtml(html) {
@@ -1252,8 +1303,7 @@ function disabledControlHtml(html) {
 }
 
 function formatSimulatedTime(totalMinutes) {
-  const minutesInDay = 24 * 60;
-  const normalized = ((totalMinutes % minutesInDay) + minutesInDay) % minutesInDay;
+  const normalized = ((totalMinutes % MINUTES_PER_DAY) + MINUTES_PER_DAY) % MINUTES_PER_DAY;
   const hour24 = Math.floor(normalized / 60);
   const minutes = normalized % 60;
   const period = hour24 >= 12 ? "PM" : "AM";
@@ -1261,41 +1311,73 @@ function formatSimulatedTime(totalMinutes) {
   return `${hour12}:${String(minutes).padStart(2, "0")} ${period}`;
 }
 
-function currentLiveDateTime() {
-  return formatSimulatedTime(liveDateState.simulatedTimeMinutes);
+function simulatedCalendarDay(timestampMinutes) {
+  return Math.floor(timestampMinutes / MINUTES_PER_DAY);
 }
 
-function updateLiveDateChrome() {
-  if (!Number.isFinite(liveDateState.simulatedTimeMinutes)) return;
+function simulatedWeekdayLabel(timestampMinutes) {
+  return SIMULATED_WEEKDAYS[new Date(timestampMinutes * 60000).getUTCDay()];
+}
+
+function relativeSimulatedDayLabel(timestampMinutes) {
+  const dayDifference = simulatedCalendarDay(timestampMinutes) - simulatedCalendarDay(simulatedTimeline.currentTimestampMinutes);
+  if (dayDifference === 0) return "Today";
+  if (dayDifference === 1) return "Tomorrow";
+  return simulatedWeekdayLabel(timestampMinutes);
+}
+
+function formatRelativeDateTime(timestampMinutes) {
+  return `${relativeSimulatedDayLabel(timestampMinutes)} · ${formatSimulatedTime(timestampMinutes)}`;
+}
+
+function formatMessageTimestamp(timestampMinutes) {
+  const dayLabel = relativeSimulatedDayLabel(timestampMinutes);
+  return dayLabel === "Today"
+    ? formatSimulatedTime(timestampMinutes)
+    : `${dayLabel} · ${formatSimulatedTime(timestampMinutes)}`;
+}
+
+function currentLiveDateTime() {
+  return formatSimulatedTime(simulatedTimeline.currentTimestampMinutes);
+}
+
+function refreshSimulatedTimelineLabels() {
+  app.querySelectorAll("[data-date-separator-timestamp]").forEach((separator) => {
+    const timestampMinutes = Number(separator.dataset.dateSeparatorTimestamp);
+    const label = separator.querySelector("span") || separator;
+    label.textContent = formatRelativeDateTime(timestampMinutes);
+  });
+  app.querySelectorAll("[data-message-timestamp]").forEach((message) => {
+    const timestampMinutes = Number(message.dataset.messageTimestamp);
+    const label = message.querySelector("[data-message-time]");
+    if (label) label.textContent = formatMessageTimestamp(timestampMinutes);
+  });
   const phoneTime = app.querySelector("[data-phone-time]");
   if (phoneTime) phoneTime.textContent = currentLiveDateTime().replace(/ (AM|PM)$/, "");
-  const messageDate = app.querySelector(".message-date");
-  if (messageDate && liveDateState.dateStarted) messageDate.textContent = "Friday · Live date";
 }
 
 function setSimulatedTime(totalMinutes) {
-  liveDateState.simulatedTimeMinutes = totalMinutes;
-  updateLiveDateChrome();
+  simulatedTimeline.currentTimestampMinutes = totalMinutes;
+  refreshSimulatedTimelineLabels();
 }
 
 function initializeLiveDateClock() {
-  if (!Number.isFinite(liveDateState.simulatedTimeMinutes)) {
-    setSimulatedTime(beachDateFlow.startTimeMinutes);
+  if (simulatedTimeline.currentTimestampMinutes < beachDateFlow.startTimestampMinutes) {
+    setSimulatedTime(beachDateFlow.startTimestampMinutes);
   }
 }
 
 function advanceSimulatedTime(durationMinutes) {
-  initializeLiveDateClock();
-  setSimulatedTime(liveDateState.simulatedTimeMinutes + durationMinutes);
-  return liveDateState.simulatedTimeMinutes;
+  setSimulatedTime(simulatedTimeline.currentTimestampMinutes + durationMinutes);
+  return simulatedTimeline.currentTimestampMinutes;
 }
 
 function advanceLiveDatePhase(phaseId) {
   const phase = liveDatePhase(phaseId);
   initializeLiveDateClock();
-  const startMinutes = liveDateState.phaseStartTimes[phaseId] ?? liveDateState.simulatedTimeMinutes;
+  const startMinutes = liveDateState.phaseStartTimes[phaseId] ?? simulatedTimeline.currentTimestampMinutes;
   const completionMinutes = Math.max(
-    liveDateState.simulatedTimeMinutes,
+    simulatedTimeline.currentTimestampMinutes,
     startMinutes + (phase.durationMinutes || 0),
   );
   liveDateState.phaseCompletionTimes[phaseId] = completionMinutes;
@@ -1305,22 +1387,25 @@ function advanceLiveDatePhase(phaseId) {
 
 function liveEntryTimestamp(entry) {
   if (!Number.isFinite(entry.timestampMinutes)) return "";
-  return `<time class="live-message-time">${formatSimulatedTime(entry.timestampMinutes)}</time>`;
+  return `<time class="live-message-time" data-message-time>${formatMessageTimestamp(entry.timestampMinutes)}</time>`;
 }
 
 function renderDateEntry(entry) {
   if (entry.type === "divider") {
-    const label = Number.isFinite(entry.minutes) ? formatSimulatedTime(entry.minutes) : entry.label;
-    return `<div class="conversation-time-jump live-date-time"><span>${escapeHtml(label)}</span></div>`;
+    const label = Number.isFinite(entry.minutes) ? formatRelativeDateTime(entry.minutes) : entry.label;
+    const timestampAttribute = Number.isFinite(entry.minutes) ? ` data-date-separator-timestamp="${entry.minutes}"` : "";
+    return `<div class="conversation-time-jump live-date-time" data-entry-id="${escapeHtml(entry.id)}"${timestampAttribute}><span>${escapeHtml(label)}</span></div>`;
   }
   if (entry.type === "incoming") {
-    return `<div class="message-row incoming-row"><div class="message-bubble incoming">${entry.lines.map((line) => `<p>${escapeHtml(line)}</p>`).join("")}${liveEntryTimestamp(entry)}</div></div>`;
+    const timestampAttribute = Number.isFinite(entry.timestampMinutes) ? ` data-message-timestamp="${entry.timestampMinutes}"` : "";
+    return `<div class="message-row incoming-row" data-entry-id="${escapeHtml(entry.id)}"${timestampAttribute}><div class="message-bubble incoming">${entry.lines.map((line) => `<p>${escapeHtml(line)}</p>`).join("")}${liveEntryTimestamp(entry)}</div></div>`;
   }
   if (entry.type === "outgoing") {
-    return `<div class="message-row outgoing-row"><div class="message-bubble outgoing"><p>${escapeHtml(entry.text)}</p>${liveEntryTimestamp(entry)}</div></div>`;
+    const timestampAttribute = Number.isFinite(entry.timestampMinutes) ? ` data-message-timestamp="${entry.timestampMinutes}"` : "";
+    return `<div class="message-row outgoing-row" data-entry-id="${escapeHtml(entry.id)}"${timestampAttribute}><div class="message-bubble outgoing"><p>${escapeHtml(entry.text)}</p>${liveEntryTimestamp(entry)}</div></div>`;
   }
   const content = entry.completed ? disabledControlHtml(entry.html) : entry.html;
-  return `<div class="message-row participant-control-row live-date-control ${entry.completed ? "is-complete" : ""}" data-control="${entry.controlId}">${content}</div>`;
+  return `<div class="message-row participant-control-row live-date-control ${entry.completed ? "is-complete" : ""}" data-entry-id="${escapeHtml(entry.id)}" data-control="${entry.controlId}">${content}</div>`;
 }
 
 function renderActiveDateThread() {
@@ -1335,30 +1420,36 @@ function renderActiveDateThread() {
   });
   const header = app.querySelector(".messages-wordmark");
   if (header) header.textContent = `Ditto · ${personById(participantId).name}`;
-  updateLiveDateChrome();
+  refreshSimulatedTimelineLabels();
   scrollParticipantThread();
 }
 
-function addDateEntries(participantIds, entries) {
+function addDateEntries(participantIds, entries, namespace) {
+  if (!namespace) throw new Error("Timeline entries require a stable namespace.");
   participantIds.forEach((participantId) => {
-    liveDateRecord(participantId).messages.push(...entries.map(cloneDateEntry));
+    const record = liveDateRecord(participantId);
+    entries.forEach((entry, index) => {
+      const entryId = `${namespace}:${participantId}:${entry.entryKey || index}`;
+      if (record.messages.some((message) => message.id === entryId)) return;
+      record.messages.push(cloneDateEntry(entry, entryId));
+    });
   });
 }
 
-function addSharedDateEntries(entries) {
-  addDateEntries(selectedIds, entries);
+function addSharedDateEntries(entries, namespace) {
+  addDateEntries(selectedIds, entries, namespace);
 }
 
-function incomingDateEntry(lines, timestampMinutes) {
-  return { type: "incoming", lines, timestampMinutes };
+function incomingDateEntry(lines, timestampMinutes, entryKey) {
+  return { type: "incoming", lines, timestampMinutes, entryKey };
 }
 
-function outgoingDateEntry(text, timestampMinutes) {
-  return { type: "outgoing", text, timestampMinutes };
+function outgoingDateEntry(text, timestampMinutes, entryKey) {
+  return { type: "outgoing", text, timestampMinutes, entryKey };
 }
 
 function controlDateEntry(controlId, html) {
-  return { type: "control", controlId, html, completed: false };
+  return { type: "control", controlId, html, completed: false, entryKey: `control-${controlId}` };
 }
 
 function setLiveDatePhase(phaseId) {
@@ -1366,7 +1457,7 @@ function setLiveDatePhase(phaseId) {
   initializeLiveDateClock();
   liveDateState.currentPhaseId = phaseId;
   if (!Number.isFinite(liveDateState.phaseStartTimes[phaseId])) {
-    liveDateState.phaseStartTimes[phaseId] = liveDateState.simulatedTimeMinutes;
+    liveDateState.phaseStartTimes[phaseId] = simulatedTimeline.currentTimestampMinutes;
   }
   return phase;
 }
@@ -1378,11 +1469,11 @@ function appendLiveDatePhase(phaseId, entries, participantIds = selectedIds) {
   participantIds.forEach((participantId) => {
     const record = liveDateRecord(participantId);
     const lastDivider = [...record.messages].reverse().find((entry) => entry.type === "divider" && Number.isFinite(entry.minutes));
-    const shouldAddDivider = !lastDivider || liveDateState.simulatedTimeMinutes - lastDivider.minutes >= 5;
+    const shouldAddDivider = !lastDivider || simulatedTimeline.currentTimestampMinutes - lastDivider.minutes >= 5;
     const phaseEntries = shouldAddDivider
-      ? [{ type: "divider", minutes: liveDateState.simulatedTimeMinutes }, ...entries]
+      ? [{ type: "divider", minutes: simulatedTimeline.currentTimestampMinutes, entryKey: "divider" }, ...entries]
       : entries;
-    record.messages.push(...phaseEntries.map(cloneDateEntry));
+    addDateEntries([participantId], phaseEntries, `phase-${phaseId}`);
   });
   renderActiveDateThread();
   return true;
@@ -1409,7 +1500,6 @@ function recordPairingPhase(phaseId, pairs, details = {}) {
 function postcardRevealFor(participantId) {
   const selectedBy = personById(liveDateState.selectedByUserId);
   const photoOwner = personById(liveDateState.selectedPhotoOwnerId);
-  const [selectedPair, opposingPair] = liveDateState.firstPairing;
   const selectedPhoto = liveDateState.submittedPhotos[photoOwner.id];
   const participantIsSelector = participantId === selectedBy.id;
   const participantIsOwner = participantId === photoOwner.id;
@@ -1417,23 +1507,19 @@ function postcardRevealFor(participantId) {
   let intro;
   let ownerLabel;
   let ownerValue;
-  let pairingLine;
 
   if (participantIsSelector) {
     intro = "Remember the photo you picked?";
     ownerLabel = "That was";
     ownerValue = `${photoOwner.name}'s`;
-    pairingLine = "You two are starting together.";
   } else if (participantIsOwner) {
     intro = `${selectedBy.name} picked your photo earlier.`;
     ownerLabel = "Selected by";
     ownerValue = selectedBy.name;
-    pairingLine = "You two are starting together.";
   } else {
     intro = `${selectedBy.name} picked ${photoOwner.name}'s photo earlier.`;
     ownerLabel = "Photo owner";
     ownerValue = photoOwner.name;
-    pairingLine = `${pairLabel(selectedPair)} are starting together.`;
   }
 
   return [
@@ -1442,19 +1528,8 @@ function postcardRevealFor(participantId) {
       <article class="postcard-reveal-pass">
         <img src="${selectedPhoto}" alt="Selected postcard, revealed as ${photoOwner.name}'s">
         <div class="postcard-owner-reveal"><span>${ownerLabel}</span><strong>${ownerValue}</strong></div>
-        <div class="pairing-pass-line">
-          ${portrait(photoOwner, "pairing-pass-avatar", photoOwner.name)}
-          <div><span>First pairing</span><strong>${pairLabel(selectedPair)}</strong></div>
-        </div>
       </article>
     `),
-    incomingDateEntry([
-      pairingLine,
-      "Your first pairing comes from the photo pick.",
-      `${pairLabel(selectedPair)} versus ${pairLabel(opposingPair)}.`,
-      "Phones away for a minute.",
-      "I'll step in when I'm needed.",
-    ]),
   ];
 }
 
@@ -1464,22 +1539,31 @@ function beginLiveDate() {
   ensureLiveDatePostcardState();
   initializeLiveDateClock();
   liveDateState.preDateHtmlByParticipant.jacob = participantConversation().innerHTML;
+  const jacobAlreadyHasCurrentDivider = Boolean(app.querySelector(
+    `[data-date-separator-timestamp="${simulatedTimeline.currentTimestampMinutes}"]`,
+  ));
   app.querySelector("[data-pov-switch]").hidden = false;
   setParticipantScreen(19);
 
   setLiveDatePhase("arrival");
   liveDateState.phaseAppended.arrival = true;
   selectedIds.forEach((participantId) => {
+    const divider = participantId === "jacob" && jacobAlreadyHasCurrentDivider
+      ? []
+      : [{ type: "divider", minutes: simulatedTimeline.currentTimestampMinutes, entryKey: "divider" }];
     addDateEntries([participantId], [
-      { type: "divider", minutes: liveDateState.simulatedTimeMinutes },
+      ...divider,
+      incomingDateEntry(["Perfect.", "Take a moment and say hi."], undefined, "arrival-greeting"),
+      incomingDateEntry(["Phones away for a minute.", "I'll step in when I'm needed."], undefined, "phones-away"),
       ...postcardRevealFor(participantId),
-    ]);
+    ], "phase-arrival");
   });
   renderActiveDateThread();
-  scheduleParticipant(showLinkedDodgeball, 1200);
+  scheduleParticipant(showLinkedDodgeball, 1200, "live-linked-dodgeball");
 }
 
 function showLinkedDodgeball() {
+  if (liveDateState.phaseAppended["linked-dodgeball"]) return;
   advanceLiveDatePhase("arrival");
   const firstPairing = liveDateState.firstPairing.map((pair) => [...pair]);
   recordPairingPhase("linked-dodgeball", firstPairing, {
@@ -1504,17 +1588,18 @@ function finishLinkedDodgeball() {
   if (liveDateState.dodgeballResult) return;
   completeLiveDateControl("linked-dodgeball");
   const completionMinutes = advanceLiveDatePhase("linked-dodgeball");
-  liveDateRecord().messages.push(outgoingDateEntry("Game finished", completionMinutes));
+  addDateEntries([liveDateState.activeParticipantId], [outgoingDateEntry("Game finished", completionMinutes)], "result-linked-dodgeball-user");
   const winner = [...liveDateState.firstPairing[0]];
   const loser = liveDateState.firstPairing[1];
   liveDateState.dodgeballResult = { winner, loser: [...loser], score: "5–3" };
   liveDateState.completedTasks.push("linked-dodgeball");
-  addSharedDateEntries([incomingDateEntry([`${pairLabel(winner)} won, 5–3.`, "Keep that energy."], completionMinutes)]);
+  addSharedDateEntries([incomingDateEntry([`${pairLabel(winner)} won, 5–3.`, "Keep that energy."], completionMinutes)], "result-linked-dodgeball");
   renderActiveDateThread();
-  scheduleParticipant(showCouplePhotoChallenge, 850);
+  scheduleParticipant(showCouplePhotoChallenge, 850, "live-couple-photo");
 }
 
 function showCouplePhotoChallenge() {
+  if (liveDateState.phaseAppended["couple-photo"]) return;
   recordPairingPhase("couple-photo", beachDateFlow.pairings.couplePhoto, {
     preserved: false,
     disrupted: true,
@@ -1536,7 +1621,7 @@ function finishCouplePhotoChallenge() {
   if (liveDateState.couplePhotoResult) return;
   completeLiveDateControl("couple-photo");
   const completionMinutes = advanceLiveDatePhase("couple-photo");
-  liveDateRecord().messages.push(outgoingDateEntry("Photos taken", completionMinutes));
+  addDateEntries([liveDateState.activeParticipantId], [outgoingDateEntry("Photos taken", completionMinutes)], "result-couple-photo-user");
   const winner = [...beachDateFlow.simulatedResults.couplePhotoWinner];
   const loser = beachDateFlow.pairings.couplePhoto.find((pair) => !pairIncludes(pair, ...winner));
   liveDateState.couplePhotoResult = { winner, loser: [...loser] };
@@ -1546,15 +1631,14 @@ function finishCouplePhotoChallenge() {
   liveDateState.completedTasks.push("couple-photo");
   addSharedDateEntries([incomingDateEntry([
     `${pairLabel(winner)} won.`,
-    `${pairLabel(loser)}, ingredient prep is yours.`,
-    `${pairLabel(winner)}, set up the table, drinks, plates, and barbecue area.`,
     "Grill duty is still open.",
-  ], completionMinutes)]);
+  ], completionMinutes)], "result-couple-photo");
   renderActiveDateThread();
-  scheduleParticipant(showCookoutSetup, 850);
+  scheduleParticipant(showCookoutSetup, 850, "live-cookout-setup");
 }
 
 function showCookoutSetup() {
+  if (liveDateState.phaseAppended["cookout-setup"]) return;
   appendLiveDatePhase("cookout-setup", [
     incomingDateEntry([
       `${pairLabel(liveDateState.ingredientPreparationPair)}, ingredient prep is yours.`,
@@ -1570,13 +1654,14 @@ function finishCookoutSetup() {
   if (liveDateState.completedTasks.includes("cookout-setup")) return;
   completeLiveDateControl("cookout-setup");
   const completionMinutes = advanceLiveDatePhase("cookout-setup");
-  liveDateRecord().messages.push(outgoingDateEntry("We're ready to grill", completionMinutes));
+  addDateEntries([liveDateState.activeParticipantId], [outgoingDateEntry("We're ready to grill", completionMinutes)], "result-cookout-setup-user");
   liveDateState.completedTasks.push("cookout-setup");
   renderActiveDateThread();
-  scheduleParticipant(showArmWrestling, 750);
+  scheduleParticipant(showArmWrestling, 750, "live-arm-wrestling");
 }
 
 function showArmWrestling() {
+  if (liveDateState.phaseAppended["arm-wrestling"]) return;
   recordPairingPhase("arm-wrestling", beachDateFlow.pairings.armWrestling, {
     preserved: true,
     disrupted: false,
@@ -1597,7 +1682,7 @@ function finishArmWrestling() {
   if (liveDateState.armWrestlingResult) return;
   completeLiveDateControl("arm-wrestling");
   const completionMinutes = advanceLiveDatePhase("arm-wrestling");
-  liveDateRecord().messages.push(outgoingDateEntry("Match finished", completionMinutes));
+  addDateEntries([liveDateState.activeParticipantId], [outgoingDateEntry("Match finished", completionMinutes)], "result-arm-wrestling-user");
   const winnerId = beachDateFlow.simulatedResults.armWrestlingWinner;
   const winningPair = beachDateFlow.pairings.armWrestling.find((pair) => pair.includes(winnerId));
   const losingPair = beachDateFlow.pairings.armWrestling.find((pair) => !pair.includes(winnerId));
@@ -1610,18 +1695,18 @@ function finishArmWrestling() {
     `${personById(winnerId).name} took it.`,
     `${pairLabel(losingPair)}, grill duty is yours.`,
     "Everyone else: keep them company—or don't.",
-  ], completionMinutes)]);
+  ], completionMinutes)], "result-arm-wrestling");
   renderActiveDateThread();
-  scheduleParticipant(showGrillingDinner, 650);
+  scheduleParticipant(showGrillingDinner, 650, "live-grilling-dinner");
 }
 
 function showGrillingDinner() {
-  appendLiveDatePhase("grilling-dinner", [incomingDateEntry([
+  const appended = appendLiveDatePhase("grilling-dinner", [incomingDateEntry([
     "Dinner's on.",
-    `${pairLabel(liveDateState.grillDutyPair)}, the grill is yours.`,
     "Phones down. I'll be back later.",
   ])]);
-  scheduleParticipant(showPrivateWindow, 1500);
+  if (!appended) return;
+  scheduleParticipant(showPrivateWindow, 1500, "live-private-window");
 }
 
 function nameInputControl(controlId, action, placeholder) {
@@ -1635,14 +1720,14 @@ function showPrivateWindow() {
   liveDateState.phaseAppended["private-window"] = true;
   selectedIds.forEach((participantId) => {
     addDateEntries([participantId], [
-      { type: "divider", minutes: liveDateState.simulatedTimeMinutes },
+      { type: "divider", minutes: simulatedTimeline.currentTimestampMinutes, entryKey: "divider" },
       incomingDateEntry([
         "Ten-minute window is open.",
         "There's someone here you want more time with.",
         "Send me their name.",
       ]),
       controlDateEntry(`private-window-${participantId}`, nameInputControl(`private-window-${participantId}`, "private-window-submit", "Type one name")),
-    ]);
+    ], "phase-private-window");
   });
   setParticipantScreen(29);
   renderActiveDateThread();
@@ -1667,7 +1752,7 @@ function simulateRemainingPrivateWindowChoices() {
     const record = liveDateRecord(participantId);
     if (record.privateWindowChoice !== undefined) return;
     record.privateWindowChoice = choiceId;
-    record.messages.push(outgoingDateEntry(personById(choiceId).name, liveDateState.simulatedTimeMinutes));
+    addDateEntries([participantId], [outgoingDateEntry(personById(choiceId).name, simulatedTimeline.currentTimestampMinutes)], "private-window-simulated-choice");
     completePrivateParticipantControl(participantId);
   });
 }
@@ -1683,15 +1768,15 @@ function submitPrivateWindowName() {
     return;
   }
   record.privateWindowChoice = result.value;
-  record.messages.push(
-    outgoingDateEntry(result.label, liveDateState.simulatedTimeMinutes),
-    incomingDateEntry(["Got it. Waiting for everyone."], liveDateState.simulatedTimeMinutes),
-  );
+  addDateEntries([participantId], [
+    outgoingDateEntry(result.label, simulatedTimeline.currentTimestampMinutes),
+    incomingDateEntry(["Got it. Waiting for everyone."], simulatedTimeline.currentTimestampMinutes),
+  ], "private-window-user-choice");
   completePrivateParticipantControl(participantId);
   simulateRemainingPrivateWindowChoices();
   renderActiveDateThread();
   if (selectedIds.every((id) => liveDateRecord(id).privateWindowChoice !== undefined)) {
-    scheduleParticipant(resolvePrivateWindowChoices, 800);
+    scheduleParticipant(resolvePrivateWindowChoices, 800, "live-private-window-resolution");
   }
 }
 
@@ -1739,11 +1824,11 @@ function resolvePrivateWindowChoices() {
       lines.push("No private window was scheduled for you tonight.");
       record.privateWindowOutcome = { type: "none" };
     }
-    record.messages.push(incomingDateEntry(lines, completionMinutes));
+    addDateEntries([participantId], [incomingDateEntry(lines, completionMinutes)], "private-window-resolution");
   });
   liveDateState.privateWindowResolved = true;
   renderActiveDateThread();
-  scheduleParticipant(showBeachFinalSignal, 1200);
+  scheduleParticipant(showBeachFinalSignal, 1200, "live-final-signal");
 }
 
 function showBeachFinalSignal() {
@@ -1753,14 +1838,14 @@ function showBeachFinalSignal() {
   liveDateState.phaseAppended["final-signal"] = true;
   selectedIds.forEach((participantId) => {
     addDateEntries([participantId], [
-      { type: "divider", minutes: liveDateState.simulatedTimeMinutes },
+      { type: "divider", minutes: simulatedTimeline.currentTimestampMinutes, entryKey: "divider" },
       incomingDateEntry([
         "Final signal.",
         "Who would you want to see again after tonight?",
         "Send me one name—or send 'no one.'",
       ]),
       controlDateEntry(`final-signal-${participantId}`, nameInputControl(`final-signal-${participantId}`, "final-signal-submit", "Type one name or no one")),
-    ]);
+    ], "phase-final-signal");
   });
   setParticipantScreen(33);
   renderActiveDateThread();
@@ -1772,11 +1857,11 @@ function simulateRemainingFinalSignals() {
     if (record.finalSignalLocked) return;
     record.finalSignal = choiceId;
     record.finalSignalLocked = true;
-    record.messages.push(outgoingDateEntry(personById(choiceId).name, liveDateState.simulatedTimeMinutes), incomingDateEntry([
+    addDateEntries([participantId], [outgoingDateEntry(personById(choiceId).name, simulatedTimeline.currentTimestampMinutes), incomingDateEntry([
       "Locked.",
       "That's your final answer for tonight.",
       "Results arrive at 12:00 AM.",
-    ], liveDateState.simulatedTimeMinutes));
+    ], simulatedTimeline.currentTimestampMinutes)], "final-signal-simulated-choice");
     completeLiveDateControl(`final-signal-${participantId}`, [participantId]);
   });
 }
@@ -1793,16 +1878,16 @@ function submitFinalSignalName() {
   }
   record.finalSignal = result.value;
   record.finalSignalLocked = true;
-  record.messages.push(outgoingDateEntry(result.label, liveDateState.simulatedTimeMinutes), incomingDateEntry([
+  addDateEntries([participantId], [outgoingDateEntry(result.label, simulatedTimeline.currentTimestampMinutes), incomingDateEntry([
     "Locked.",
     "That's your final answer for tonight.",
     "Results arrive at 12:00 AM.",
-  ], liveDateState.simulatedTimeMinutes));
+  ], simulatedTimeline.currentTimestampMinutes)], "final-signal-user-choice");
   completeLiveDateControl(`final-signal-${participantId}`, [participantId]);
   simulateRemainingFinalSignals();
   renderActiveDateThread();
   if (selectedIds.every((id) => liveDateRecord(id).finalSignalLocked)) {
-    scheduleParticipant(showMidnightWaitingState, 700);
+    scheduleParticipant(showMidnightWaitingState, 700, "live-midnight-waiting");
   }
 }
 
@@ -1812,9 +1897,8 @@ function showMidnightWaitingState() {
   liveDateState.phaseAppended.waiting = true;
   selectedIds.forEach((participantId) => {
     addDateEntries([participantId], [
-      incomingDateEntry(["Your signal is locked.", "Results arrive at 12:00 AM."], liveDateState.simulatedTimeMinutes),
       controlDateEntry(`midnight-fast-forward-${participantId}`, `<div class="prototype-time-control"><span>Prototype control</span><button data-participant-action="fast-forward-midnight">Fast-forward to 12:00 AM</button></div>`),
-    ]);
+    ], "phase-midnight-waiting");
   });
   setParticipantScreen(34);
   renderActiveDateThread();
@@ -1828,19 +1912,19 @@ function resolveMidnightResults() {
       const partnerId = pair.find((id) => id !== participantId);
       liveDateState.midnightResults[participantId] = { type: "mutual", partnerId };
       liveDateRecord(participantId).midnightResult = { type: "mutual", partnerId };
-      liveDateRecord(participantId).messages.push(incomingDateEntry([
+      addDateEntries([participantId], [incomingDateEntry([
         "It's mutual.",
         `You and ${personById(partnerId).name} both chose each other.`,
         "I'll take it from here.",
-      ], liveDateState.simulatedTimeMinutes));
+      ], simulatedTimeline.currentTimestampMinutes)], "midnight-result");
     } else {
       liveDateState.midnightResults[participantId] = { type: "non_mutual" };
       liveDateRecord(participantId).midnightResult = { type: "non_mutual" };
-      liveDateRecord(participantId).messages.push(incomingDateEntry([
+      addDateEntries([participantId], [incomingDateEntry([
         "No mutual signal tonight.",
         "Some connections need more than one evening.",
         "Goodnight.",
-      ], liveDateState.simulatedTimeMinutes));
+      ], simulatedTimeline.currentTimestampMinutes)], "midnight-result");
     }
   });
 }
@@ -1850,7 +1934,7 @@ function fastForwardToMidnight() {
   setSimulatedTime(liveDatePhase("midnight-reveal").targetTimeMinutes);
   selectedIds.forEach((participantId) => {
     completeLiveDateControl(`midnight-fast-forward-${participantId}`, [participantId]);
-    liveDateRecord(participantId).messages.push({ type: "divider", minutes: liveDateState.simulatedTimeMinutes });
+    addDateEntries([participantId], [{ type: "divider", minutes: simulatedTimeline.currentTimestampMinutes, entryKey: "divider" }], "phase-midnight-reveal");
   });
   setLiveDatePhase("midnight-reveal");
   liveDateState.midnightRevealGenerated = true;
