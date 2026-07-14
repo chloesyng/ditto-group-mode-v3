@@ -159,6 +159,13 @@ const postcardSubmissions = {
   lucas: "assets/postcards/postcard-03.png",
 };
 
+const canonicalDemoPhotoSelections = {
+  jacob: "olivia",
+  olivia: "jacob",
+  kayla: "lucas",
+  lucas: "kayla",
+};
+
 const beachDateFlow = {
   id: "golden-hour-beach-cookout",
   title: "Golden Hour Beach Cookout",
@@ -167,7 +174,6 @@ const beachDateFlow = {
   startTime: "6:00 PM",
   startTimeMinutes: 18 * 60,
   pairings: {
-    linkedDodgeball: [["jacob", "olivia"], ["lucas", "kayla"]],
     couplePhoto: [["olivia", "lucas"], ["kayla", "jacob"]],
     armWrestling: [["olivia", "lucas"], ["kayla", "jacob"]],
   },
@@ -184,7 +190,6 @@ const beachDateFlow = {
     { id: "midnight-reveal", durationMinutes: 0, targetTimeMinutes: 24 * 60, type: "midnight_reveal", inputType: "none", shared: false },
   ],
   simulatedResults: {
-    dodgeballWinner: ["jacob", "olivia"],
     couplePhotoWinner: ["olivia", "lucas"],
     armWrestlingWinner: "jacob",
     privateWindowChoices: { olivia: "jacob", kayla: "lucas", lucas: "kayla" },
@@ -207,6 +212,12 @@ function createLiveDateState() {
     simulatedTimeMinutes: undefined,
     phaseStartTimes: {},
     phaseCompletionTimes: {},
+    submittedPhotos: {},
+    photoSelections: {},
+    selectedPhotoOwnerId: undefined,
+    selectedByUserId: undefined,
+    firstPairing: [],
+    firstPairingResolved: false,
     dateStarted: false,
     pairings: [],
     pairingHistory: [],
@@ -731,6 +742,48 @@ function validPairingConfigurations() {
   return candidates.filter(pairingConfigurationIsValid);
 }
 
+function resolveFirstPairing(selectedByUserId, selectedPhotoOwnerId) {
+  if (!isMutuallyEligible(selectedByUserId, selectedPhotoOwnerId)) return false;
+  const validConfiguration = validPairingConfigurations().find((configuration) => (
+    configuration.some((pair) => pairIncludes(pair, selectedByUserId, selectedPhotoOwnerId))
+  ));
+  if (!validConfiguration) return false;
+
+  const remainingPair = validConfiguration.find((pair) => !pairIncludes(pair, selectedByUserId, selectedPhotoOwnerId));
+  liveDateState.selectedByUserId = selectedByUserId;
+  liveDateState.selectedPhotoOwnerId = selectedPhotoOwnerId;
+  liveDateState.firstPairing = [
+    [selectedByUserId, selectedPhotoOwnerId],
+    [...remainingPair],
+  ];
+  liveDateState.firstPairingResolved = true;
+  return true;
+}
+
+function storePhotoSelection(selectedByUserId, selectedPhotoOwnerId) {
+  liveDateState.photoSelections[selectedByUserId] = selectedPhotoOwnerId;
+  return resolveFirstPairing(selectedByUserId, selectedPhotoOwnerId);
+}
+
+function ensureLiveDatePostcardState() {
+  selectedIds.forEach((participantId) => {
+    if (!liveDateState.submittedPhotos[participantId]) {
+      liveDateState.submittedPhotos[participantId] = postcardSubmissions[participantId];
+    }
+    if (!liveDateState.photoSelections[participantId]) {
+      liveDateState.photoSelections[participantId] = canonicalDemoPhotoSelections[participantId];
+    }
+  });
+
+  if (!liveDateState.firstPairingResolved) {
+    const selectedByUserId = liveDateState.selectedByUserId || "jacob";
+    const selectedPhotoOwnerId = liveDateState.selectedPhotoOwnerId
+      || liveDateState.photoSelections[selectedByUserId]
+      || canonicalDemoPhotoSelections[selectedByUserId];
+    resolveFirstPairing(selectedByUserId, selectedPhotoOwnerId);
+  }
+}
+
 function pairLabel(pair) {
   return pair.map((id) => personById(id).name).join(" + ");
 }
@@ -1011,6 +1064,7 @@ function startPostcardPick(button) {
 
 function simulatePostcardUpload() {
   participantState.uploadedPostcard = postcardSubmissions.jacob;
+  liveDateState.submittedPhotos.jacob = participantState.uploadedPostcard;
   const preview = app.querySelector("[data-postcard-preview]");
   preview.innerHTML = `<img src="${participantState.uploadedPostcard}" alt="Jacob's private postcard preview">`;
   app.querySelector("[data-participant-action='submit-postcard']").disabled = false;
@@ -1019,6 +1073,12 @@ function simulatePostcardUpload() {
 
 function submitPostcard() {
   if (!participantState.uploadedPostcard) return;
+  liveDateState.submittedPhotos.jacob = participantState.uploadedPostcard;
+  selectedIds.forEach((participantId) => {
+    if (!liveDateState.submittedPhotos[participantId]) {
+      liveDateState.submittedPhotos[participantId] = postcardSubmissions[participantId];
+    }
+  });
   const upload = app.querySelector("[data-control='postcard-upload']");
   const caption = upload.querySelector(".postcard-caption").value.trim();
   completeControl("postcard-upload");
@@ -1071,6 +1131,7 @@ function selectPostcard(button) {
 
 function confirmPostcardSelection() {
   if (!participantState.postcardSelection) return;
+  if (!storePhotoSelection("jacob", participantState.postcardSelection)) return;
   completeControl("postcard-selection");
   appendOutgoing("Picked one");
   showParticipantTyping(() => {
@@ -1345,32 +1406,92 @@ function recordPairingPhase(phaseId, pairs, details = {}) {
   });
 }
 
+function postcardRevealFor(participantId) {
+  const selectedBy = personById(liveDateState.selectedByUserId);
+  const photoOwner = personById(liveDateState.selectedPhotoOwnerId);
+  const [selectedPair, opposingPair] = liveDateState.firstPairing;
+  const selectedPhoto = liveDateState.submittedPhotos[photoOwner.id];
+  const participantIsSelector = participantId === selectedBy.id;
+  const participantIsOwner = participantId === photoOwner.id;
+
+  let intro;
+  let ownerLabel;
+  let ownerValue;
+  let pairingLine;
+
+  if (participantIsSelector) {
+    intro = "Remember the photo you picked?";
+    ownerLabel = "That was";
+    ownerValue = `${photoOwner.name}'s`;
+    pairingLine = "You two are starting together.";
+  } else if (participantIsOwner) {
+    intro = `${selectedBy.name} picked your photo earlier.`;
+    ownerLabel = "Selected by";
+    ownerValue = selectedBy.name;
+    pairingLine = "You two are starting together.";
+  } else {
+    intro = `${selectedBy.name} picked ${photoOwner.name}'s photo earlier.`;
+    ownerLabel = "Photo owner";
+    ownerValue = photoOwner.name;
+    pairingLine = `${pairLabel(selectedPair)} are starting together.`;
+  }
+
+  return [
+    incomingDateEntry([intro]),
+    controlDateEntry(`postcard-reveal-${participantId}`, `
+      <article class="postcard-reveal-pass">
+        <img src="${selectedPhoto}" alt="Selected postcard, revealed as ${photoOwner.name}'s">
+        <div class="postcard-owner-reveal"><span>${ownerLabel}</span><strong>${ownerValue}</strong></div>
+        <div class="pairing-pass-line">
+          ${portrait(photoOwner, "pairing-pass-avatar", photoOwner.name)}
+          <div><span>First pairing</span><strong>${pairLabel(selectedPair)}</strong></div>
+        </div>
+      </article>
+    `),
+    incomingDateEntry([
+      pairingLine,
+      "Your first pairing comes from the photo pick.",
+      `${pairLabel(selectedPair)} versus ${pairLabel(opposingPair)}.`,
+      "Phones away for a minute.",
+      "I'll step in when I'm needed.",
+    ]),
+  ];
+}
+
 function beginLiveDate() {
   if (liveDateState.dateStarted) return;
   liveDateState.dateStarted = true;
+  ensureLiveDatePostcardState();
   initializeLiveDateClock();
   liveDateState.preDateHtmlByParticipant.jacob = participantConversation().innerHTML;
   app.querySelector("[data-pov-switch]").hidden = false;
   setParticipantScreen(19);
 
-  appendLiveDatePhase("arrival", [incomingDateEntry([
-    "You're all here. Phones away for a minute.",
-    "I'll step in when I'm needed.",
-  ])]);
+  setLiveDatePhase("arrival");
+  liveDateState.phaseAppended.arrival = true;
+  selectedIds.forEach((participantId) => {
+    addDateEntries([participantId], [
+      { type: "divider", minutes: liveDateState.simulatedTimeMinutes },
+      ...postcardRevealFor(participantId),
+    ]);
+  });
+  renderActiveDateThread();
   scheduleParticipant(showLinkedDodgeball, 1200);
 }
 
 function showLinkedDodgeball() {
   advanceLiveDatePhase("arrival");
-  recordPairingPhase("linked-dodgeball", beachDateFlow.pairings.linkedDodgeball, {
+  const firstPairing = liveDateState.firstPairing.map((pair) => [...pair]);
+  recordPairingPhase("linked-dodgeball", firstPairing, {
     preserved: false,
     disrupted: false,
     observedBy: selectedIds,
   });
   appendLiveDatePhase("linked-dodgeball", [
     incomingDateEntry([
+      "Your first pairing comes from the photo pick.",
+      `${pairLabel(firstPairing[0])} versus ${pairLabel(firstPairing[1])}.`,
       "Linked dodgeball.",
-      "Jacob + Olivia versus Lucas + Kayla.",
       "Each pair must stay linked for the entire game. Hold hands, link arms, or use the wrist band provided.",
       "Disconnect and the other pair gets the point.",
       "First pair to five wins.",
@@ -1384,8 +1505,8 @@ function finishLinkedDodgeball() {
   completeLiveDateControl("linked-dodgeball");
   const completionMinutes = advanceLiveDatePhase("linked-dodgeball");
   liveDateRecord().messages.push(outgoingDateEntry("Game finished", completionMinutes));
-  const winner = [...beachDateFlow.simulatedResults.dodgeballWinner];
-  const loser = beachDateFlow.pairings.linkedDodgeball.find((pair) => !pairIncludes(pair, ...winner));
+  const winner = [...liveDateState.firstPairing[0]];
+  const loser = liveDateState.firstPairing[1];
   liveDateState.dodgeballResult = { winner, loser: [...loser], score: "5–3" };
   liveDateState.completedTasks.push("linked-dodgeball");
   addSharedDateEntries([incomingDateEntry([`${pairLabel(winner)} won, 5–3.`, "Keep that energy."], completionMinutes)]);
