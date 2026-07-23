@@ -3,19 +3,74 @@ let activeTimer;
 let participantTimers = [];
 let participantTimerKeys = new Set();
 let participantEntrySequence = 0;
+let participantTimerGeneration = 0;
 
 const MINUTES_PER_DAY = 24 * 60;
 const SIMULATED_WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const AVAILABILITY_SLOTS = [
+  { label: "Thursday Evening", weekday: 4, startMinute: 17 * 60, endMinute: 21 * 60 },
+  { label: "Friday Evening", weekday: 5, startMinute: 17 * 60, endMinute: 21 * 60 },
+  { label: "Saturday Afternoon", weekday: 6, startMinute: 13 * 60, endMinute: 17 * 60 },
+  { label: "Saturday Evening", weekday: 6, startMinute: 17 * 60, endMinute: 21 * 60 },
+  { label: "Sunday Afternoon", weekday: 0, startMinute: 13 * 60, endMinute: 17 * 60 },
+];
 
 function simulatedTimestamp(year, monthIndex, day, hour, minute = 0) {
   return Math.floor(Date.UTC(year, monthIndex, day, hour, minute) / 60000);
 }
 
-const simulatedSchedule = {
-  preDateStartTimestampMinutes: simulatedTimestamp(2026, 6, 10, 19, 58),
-  liveDateTimestampMinutes: simulatedTimestamp(2026, 6, 17, 18),
-  midnightTimestampMinutes: simulatedTimestamp(2026, 6, 18, 0),
-};
+function createSimulatedSchedule(sessionAnchorDate, confirmedAvailability = []) {
+  const anchorYear = sessionAnchorDate.getFullYear();
+  const anchorMonth = sessionAnchorDate.getMonth();
+  const anchorDay = sessionAnchorDate.getDate();
+  const preDateStartTimestampMinutes = simulatedTimestamp(anchorYear, anchorMonth, anchorDay, 19, 58);
+  const selectedSlots = AVAILABILITY_SLOTS.filter((slot) => confirmedAvailability.includes(slot.label));
+
+  if (selectedSlots.length === 0) {
+    return {
+      confirmedAvailability: [],
+      preDateStartTimestampMinutes,
+      dayBeforeTimestampMinutes: undefined,
+      liveDateTimestampMinutes: undefined,
+      midnightTimestampMinutes: undefined,
+    };
+  }
+
+  const anchorWeekday = sessionAnchorDate.getDay();
+  const candidates = selectedSlots.map((slot) => {
+    const earliestWeekday = (anchorWeekday + 7) % 7;
+    const daysUntilMatch = 7 + ((slot.weekday - earliestWeekday + 7) % 7);
+    const includesPreferredStart = slot.startMinute <= 18 * 60 && slot.endMinute >= 18 * 60;
+    return { slot, daysUntilMatch, includesPreferredStart };
+  });
+  candidates.sort((left, right) => (
+    left.daysUntilMatch - right.daysUntilMatch
+    || Number(right.includesPreferredStart) - Number(left.includesPreferredStart)
+    || left.slot.startMinute - right.slot.startMinute
+  ));
+
+  const { slot, daysUntilMatch, includesPreferredStart } = candidates[0];
+  const liveStartMinute = includesPreferredStart
+    ? 18 * 60
+    : Math.round(((slot.startMinute + slot.endMinute) / 2) / 30) * 30;
+  const liveCalendarDate = new Date(anchorYear, anchorMonth, anchorDay + daysUntilMatch);
+  const liveYear = liveCalendarDate.getFullYear();
+  const liveMonth = liveCalendarDate.getMonth();
+  const liveDay = liveCalendarDate.getDate();
+  const liveHour = Math.floor(liveStartMinute / 60);
+  const liveMinute = liveStartMinute % 60;
+
+  return {
+    confirmedAvailability: selectedSlots.map((selectedSlot) => selectedSlot.label),
+    preDateStartTimestampMinutes,
+    dayBeforeTimestampMinutes: simulatedTimestamp(liveYear, liveMonth, liveDay - 1, 18),
+    liveDateTimestampMinutes: simulatedTimestamp(liveYear, liveMonth, liveDay, liveHour, liveMinute),
+    midnightTimestampMinutes: simulatedTimestamp(liveYear, liveMonth, liveDay + 1, 0),
+  };
+}
+
+const sessionAnchorDate = new Date();
+const simulatedSchedule = createSimulatedSchedule(sessionAnchorDate);
 
 const simulatedTimeline = {
   currentTimestampMinutes: simulatedSchedule.preDateStartTimestampMinutes,
@@ -29,6 +84,13 @@ const applicants = [
     photoPosition: "50% 24%",
     university: "UCLA",
     major: "Film, Television & Digital Media",
+    age: 22,
+    occupation: "Film, Television & Digital Media student",
+    school: "UCLA",
+    relationshipIntention: "Open to seeing what happens",
+    preferredDateCategories: ["creative", "food-and-drink", "outdoors"],
+    closenessComfortLevel: "medium",
+    instagramHandle: "@jacobframes",
     location: "Los Angeles, CA",
     intention: "Open to seeing what happens",
     interests: ["night markets", "analog film", "cookouts"],
@@ -51,6 +113,13 @@ const applicants = [
     photoPosition: "50% 28%",
     university: "USC",
     major: "Communication",
+    age: 21,
+    occupation: "Communication student",
+    school: "USC",
+    relationshipIntention: "A relationship",
+    preferredDateCategories: ["creative", "outdoors", "culture-and-nightlife"],
+    closenessComfortLevel: "medium",
+    instagramHandle: "@oliviamakes",
     location: "Los Angeles, CA",
     intention: "A relationship",
     interests: ["sunset walks", "ceramics", "playlist swaps"],
@@ -73,6 +142,13 @@ const applicants = [
     photoPosition: "50% 25%",
     university: "Loyola Marymount University",
     major: "Marketing",
+    age: 22,
+    occupation: "Marketing student",
+    school: "Loyola Marymount University",
+    relationshipIntention: "Casual dates, open to more",
+    preferredDateCategories: ["active", "food-and-drink", "culture-and-nightlife"],
+    closenessComfortLevel: "high",
+    instagramHandle: "@kaylaoutside",
     location: "Los Angeles, CA",
     intention: "Casual dates, open to more",
     interests: ["live music", "farmers markets", "volleyball"],
@@ -95,6 +171,13 @@ const applicants = [
     photoPosition: "50% 23%",
     university: "Cal State LA",
     major: "Graphic Design",
+    age: 23,
+    occupation: "Graphic Design student",
+    school: "Cal State LA",
+    relationshipIntention: "A serious relationship",
+    preferredDateCategories: ["creative", "food-and-drink", "outdoors"],
+    closenessComfortLevel: "medium",
+    instagramHandle: "@lucasdraws",
     location: "Los Angeles, CA",
     intention: "A serious relationship",
     interests: ["barbecue", "strategy games", "campus trails"],
@@ -117,6 +200,13 @@ const applicants = [
     photoPosition: "50% 25%",
     university: "UCLA",
     major: "Political Science",
+    age: 21,
+    occupation: "Political Science student",
+    school: "UCLA",
+    relationshipIntention: "Friendship first, open to romance",
+    preferredDateCategories: ["creative", "outdoors", "culture-and-nightlife"],
+    closenessComfortLevel: "low",
+    instagramHandle: "@mayafrequencies",
     location: "Los Angeles, CA",
     intention: "Friendship first, open to romance",
     interests: ["student radio", "bookstores", "picnics"],
@@ -139,6 +229,13 @@ const applicants = [
     photoPosition: "50% 24%",
     university: "Cal State LA",
     major: "Hospitality Management",
+    age: 24,
+    occupation: "Hospitality Management student and event server",
+    school: "Cal State LA",
+    relationshipIntention: "Casual dates",
+    preferredDateCategories: ["active", "food-and-drink", "culture-and-nightlife"],
+    closenessComfortLevel: "high",
+    instagramHandle: "@ethanafterhours",
     location: "Los Angeles, CA",
     intention: "Casual dates",
     interests: ["mixology", "arcades", "pickup soccer"],
@@ -190,8 +287,6 @@ const beachDateFlow = {
   title: "Golden Hour Beach Cookout",
   venue: "Dockweiler State Beach",
   environment: "beach cookout",
-  startTime: "6:00 PM",
-  startTimestampMinutes: simulatedSchedule.liveDateTimestampMinutes,
   pairings: {
     couplePhoto: [["olivia", "lucas"], ["kayla", "jacob"]],
     armWrestling: [["olivia", "lucas"], ["kayla", "jacob"]],
@@ -206,7 +301,7 @@ const beachDateFlow = {
     { id: "private-window", durationMinutes: 10, type: "private_window", inputType: "name", waitForAllParticipants: true, shared: false },
     { id: "final-signal", durationMinutes: 0, delayBeforeMinutes: 15, type: "final_signal", inputType: "name", waitForAllParticipants: true, locksAfterSubmit: true, shared: false },
     { id: "waiting", durationMinutes: 0, type: "waiting", inputType: "none", shared: false },
-    { id: "midnight-reveal", durationMinutes: 0, targetTimeMinutes: simulatedSchedule.midnightTimestampMinutes, type: "midnight_reveal", inputType: "none", shared: false },
+    { id: "midnight-reveal", durationMinutes: 0, type: "midnight_reveal", inputType: "none", shared: false },
   ],
   simulatedResults: {
     couplePhotoWinner: ["olivia", "lucas"],
@@ -224,6 +319,8 @@ function createLiveDateState() {
     finalSignal: undefined,
     finalSignalLocked: false,
     midnightResult: undefined,
+    instagramShareChoice: undefined,
+    instagramShareLocked: false,
   }]));
   return {
     activeParticipantId: "jacob",
@@ -286,6 +383,7 @@ const formationFinalPositions = {
 };
 
 function resetTimer() {
+  participantTimerGeneration += 1;
   if (activeTimer) {
     clearTimeout(activeTimer);
     activeTimer = undefined;
@@ -313,6 +411,10 @@ function resetDemo() {
 }
 
 function jumpToLiveDate() {
+  if (!Number.isFinite(simulatedSchedule.liveDateTimestampMinutes)) {
+    renderPhoneIntro();
+    return;
+  }
   renderPhoneIntro({ jumpToLiveDate: true });
 }
 
@@ -340,9 +442,30 @@ function portrait(person, className, alt = person.name) {
   return `<img class="${className}" src="${person.photo}" alt="${alt}" style="--photo-position:${person.photoPosition}">`;
 }
 
+function renderAppScreen(markup) {
+  const template = document.createElement("template");
+  template.innerHTML = markup.trim();
+  const nextScreen = template.content.firstElementChild;
+  const currentScreen = app.firstElementChild;
+
+  if (!currentScreen?.classList.contains("screen") || !nextScreen?.classList.contains("screen")) {
+    app.replaceChildren(nextScreen);
+    return;
+  }
+
+  currentScreen.className = nextScreen.className;
+  [...currentScreen.attributes]
+    .filter((attribute) => attribute.name !== "class")
+    .forEach((attribute) => currentScreen.removeAttribute(attribute.name));
+  [...nextScreen.attributes]
+    .filter((attribute) => attribute.name !== "class")
+    .forEach((attribute) => currentScreen.setAttribute(attribute.name, attribute.value));
+  currentScreen.replaceChildren(...nextScreen.childNodes);
+}
+
 function renderLanding() {
   resetTimer();
-  app.innerHTML = `
+  renderAppScreen(`
     <section class="screen landing">
       <div class="landing-scene">
         <div class="landing-copy-block">
@@ -375,14 +498,14 @@ function renderLanding() {
         </div>
       </div>
     </section>
-  `;
+  `);
 
   app.querySelector("[data-next='applications']").addEventListener("click", renderApplications);
 }
 
 function renderApplications() {
   resetTimer();
-  app.innerHTML = `
+  renderAppScreen(`
     <section class="screen studio-screen">
       <div class="studio-shell">
         <nav class="studio-nav" aria-label="Studio navigation">
@@ -419,7 +542,7 @@ function renderApplications() {
       </div>
       <div class="sheet-layer" aria-hidden="true"></div>
     </section>
-  `;
+  `);
 
   app.querySelector("[data-back='landing']").addEventListener("click", renderLanding);
   app.querySelector("[data-next='formation']").addEventListener("click", renderGroupFormation);
@@ -472,7 +595,7 @@ function closeApplicationSheet() {
 
 function renderGroupFormation() {
   resetTimer();
-  app.innerHTML = `
+  renderAppScreen(`
     <section class="screen formation-screen">
       <div class="formation-shell">
         <h1>finding the right room...</h1>
@@ -493,14 +616,14 @@ function renderGroupFormation() {
         </div>
       </div>
     </section>
-  `;
+  `);
 
   activeTimer = setTimeout(renderGroupReveal, 5600);
 }
 
 function renderGroupReveal() {
   resetTimer();
-  app.innerHTML = `
+  renderAppScreen(`
     <section class="screen reveal-screen">
       <div class="reveal-shell">
         <div class="group-pass-stack">
@@ -521,14 +644,14 @@ function renderGroupReveal() {
         </div>
       </div>
     </section>
-  `;
+  `);
 
   app.querySelector("[data-next='why']").addEventListener("click", renderWhyGroup);
 }
 
 function renderWhyGroup() {
   resetTimer();
-  app.innerHTML = `
+  renderAppScreen(`
     <section class="screen why-screen">
       <div class="why-shell">
         <div class="why-pass-stack">
@@ -548,14 +671,14 @@ function renderWhyGroup() {
         </div>
       </div>
     </section>
-  `;
+  `);
 
   app.querySelector("[data-next='date']").addEventListener("click", renderDatePlan);
 }
 
 function renderDatePlan() {
   resetTimer();
-  app.innerHTML = `
+  renderAppScreen(`
     <section class="screen date-screen">
       <div class="date-shell">
         <div class="date-pass-stack">
@@ -581,7 +704,7 @@ function renderDatePlan() {
         </div>
       </div>
     </section>
-  `;
+  `);
 
   app.querySelector("[data-next='phone']").addEventListener("click", renderPhoneIntro);
 }
@@ -590,7 +713,7 @@ function renderPhoneIntro({ jumpToLiveDate: shouldJumpToLiveDate = false } = {})
   resetTimer();
   resetParticipantDemoState();
 
-  app.innerHTML = `
+  renderAppScreen(`
     <section class="screen phone-screen">
       <div class="participant-demo-stage">
         <div class="phone-frame" aria-label="Jacob's phone">
@@ -614,7 +737,7 @@ function renderPhoneIntro({ jumpToLiveDate: shouldJumpToLiveDate = false } = {})
         </nav>
       </div>
     </section>
-  `;
+  `);
 
   app.querySelector(".phone-screen").addEventListener("click", handleParticipantAction);
   if (shouldJumpToLiveDate) {
@@ -623,27 +746,27 @@ function renderPhoneIntro({ jumpToLiveDate: shouldJumpToLiveDate = false } = {})
     return;
   }
   setParticipantScreen(8);
-  showParticipantTyping(() => {
-    appendIncoming([
-      "Group date this week?",
-      "4 people.",
-      "One plan.",
-      "Several possibilities.",
-      "No group chat.",
-      "No planning.",
-      "You in?",
-    ]);
+  appendPacedIncoming([
+    ["Group date this week?"],
+    ["4 people.", "One plan.", "Several possibilities."],
+    ["No group chat.", "No planning."],
+    ["You in?"],
+  ], () => {
     appendChoices([
       { label: "I'm in", action: "invitation-accept", primary: true },
       { label: "Maybe next time", action: "invitation-decline" },
     ], "invitation");
-  }, 1750);
+  });
 }
 
 function scheduleParticipant(callback, delay, key) {
   if (key && participantTimerKeys.has(key)) return undefined;
   if (key) participantTimerKeys.add(key);
-  const timer = setTimeout(callback, delay);
+  const generation = participantTimerGeneration;
+  const timer = setTimeout(() => {
+    if (generation !== participantTimerGeneration) return;
+    callback();
+  }, delay);
   participantTimers.push(timer);
   return timer;
 }
@@ -686,6 +809,51 @@ function appendIncoming(paragraphs, className = "", timestampMinutes = simulated
   `);
 }
 
+function visibleMessageText(content) {
+  const source = Array.isArray(content) ? content.join(" ") : String(content || "");
+  const template = document.createElement("template");
+  template.innerHTML = source;
+  return (template.content.textContent || "").replace(/\s+/g, " ").trim();
+}
+
+function typingDurationMs(content) {
+  const visibleText = visibleMessageText(content);
+  const punctuationCount = (visibleText.match(/[.,!?;:]/g) || []).length;
+  return Math.min(3200, Math.max(
+    700,
+    450 + visibleText.length * 18 + punctuationCount * 40,
+  ));
+}
+
+function readingPauseMs(content) {
+  const characterCount = visibleMessageText(content).length;
+  if (characterCount <= 45) return 250;
+  if (characterCount <= 140) return 375;
+  return 525;
+}
+
+function appendPacedIncoming(messageGroups, onComplete) {
+  let index = 0;
+
+  const revealNextMessage = () => {
+    const paragraphs = messageGroups[index];
+    const reveal = () => {
+      if (index > 0) advanceSimulatedTime(0.5);
+      appendIncoming(paragraphs);
+      index += 1;
+      if (index < messageGroups.length) {
+        scheduleParticipant(revealNextMessage, readingPauseMs(paragraphs));
+      } else if (onComplete) {
+        scheduleParticipant(onComplete, readingPauseMs(paragraphs));
+      }
+    };
+
+    showParticipantTyping(reveal, paragraphs);
+  };
+
+  revealNextMessage();
+}
+
 function appendOutgoing(text, timestampMinutes = simulatedTimeline.currentTimestampMinutes) {
   const entryId = nextParticipantEntryId("outgoing");
   return appendConversation(`
@@ -723,7 +891,7 @@ function appendTimeDivider(timestampMinutes = simulatedTimeline.currentTimestamp
   return appendConversation(`<div class="conversation-time-jump" data-entry-id="${entryId}" data-date-separator-timestamp="${timestampMinutes}"><span>${formatRelativeDateTime(timestampMinutes)}</span></div>`);
 }
 
-function showParticipantTyping(callback, delay = 720) {
+function showParticipantTyping(callback, content) {
   const marker = appendConversation(`
     <div class="message-row incoming-row participant-typing-row">
       <div class="typing-indicator" aria-label="Ditto is typing"><i></i><i></i><i></i></div>
@@ -732,7 +900,7 @@ function showParticipantTyping(callback, delay = 720) {
   scheduleParticipant(() => {
     marker.remove();
     callback();
-  }, delay);
+  }, typingDurationMs(content));
 }
 
 function completeControl(id) {
@@ -851,6 +1019,8 @@ function handleParticipantAction(event) {
     "private-window-submit": submitPrivateWindowName,
     "final-signal-submit": submitFinalSignalName,
     "fast-forward-midnight": fastForwardToMidnight,
+    "instagram-share": () => submitInstagramSharingChoice("share"),
+    "instagram-not-now": () => submitInstagramSharingChoice("not_now"),
     "switch-pov": switchParticipantPov,
   };
 
@@ -860,10 +1030,11 @@ function handleParticipantAction(event) {
 function declineParticipantFlow(controlId) {
   completeControl(controlId);
   appendOutgoing("Maybe next time");
-  showParticipantTyping(() => appendIncoming([
+  const lines = [
     "No pressure.",
     "You're back in the matching pool.",
-  ]));
+  ];
+  showParticipantTyping(() => appendIncoming(lines), lines);
 }
 
 function acceptInvitation() {
@@ -871,10 +1042,14 @@ function acceptInvitation() {
   advanceSimulatedTime(2);
   appendOutgoing("I'm in");
   setParticipantScreen(9);
+  const lines = ["I found a group I think you'll genuinely enjoy meeting."];
   showParticipantTyping(() => {
-    appendIncoming(["I found a group I think you'll genuinely enjoy meeting."]);
-    renderMeetYourGroup();
-  });
+    appendIncoming(lines);
+    scheduleParticipant(() => {
+      advanceSimulatedTime(1);
+      renderMeetYourGroup();
+    }, readingPauseMs(lines));
+  }, lines);
 }
 
 function renderMeetYourGroup() {
@@ -884,36 +1059,34 @@ function renderMeetYourGroup() {
     return 0;
   });
 
-  appendIncoming([
-    "Meet your group.",
-    "Take a look around.",
-    "No pressure.",
-    "You'll decide in a moment if this feels like your kind of night.",
-  ]);
-
-  appendConversation(`
-    <div class="message-row attachment-row">
-      <div class="participant-browser" aria-label="Meet your group">
-        ${groupOrder.map((person, index) => `
-          <article class="participant-profile-card ${person.id === "jacob" ? "is-self" : ""}" style="--delay:${index * 90}ms">
-            ${portrait(person, "participant-profile-photo")}
-            <div class="participant-profile-copy">
-              <div class="participant-profile-heading"><strong>${person.name}</strong>${person.id === "jacob" ? "<span>You</span>" : ""}</div>
-              <small>${person.university}</small>
-              <small>${person.major}</small>
-              <div class="participant-interest-list">${person.interests.map((interest) => `<span>${interest}</span>`).join("")}</div>
-              <p>${person.energy}.</p>
-            </div>
-          </article>
-        `).join("")}
+  appendPacedIncoming([
+    ["Meet your group."],
+    ["Take a look around.", "No pressure."],
+    ["You'll decide in a moment if this feels like your kind of night."],
+  ], () => {
+    appendConversation(`
+      <div class="message-row attachment-row">
+        <div class="participant-browser" aria-label="Meet your group">
+          ${groupOrder.map((person, index) => `
+            <article class="participant-profile-card ${person.id === "jacob" ? "is-self" : ""}" style="--delay:${index * 90}ms">
+              ${portrait(person, "participant-profile-photo")}
+              <div class="participant-profile-copy">
+                <div class="participant-profile-heading"><strong>${person.name}</strong>${person.id === "jacob" ? "<span>You</span>" : ""}</div>
+                <small>${person.university}</small>
+                <div class="participant-interest-list">${person.interests.map((interest) => `<span>${interest}</span>`).join("")}</div>
+                <p>${person.energy}.</p>
+              </div>
+            </article>
+          `).join("")}
+        </div>
       </div>
-    </div>
-  `);
+    `);
 
-  appendChoices([
-    { label: "I'm down", action: "group-browse-accept", primary: true },
-    { label: "Maybe next time", action: "group-browse-decline" },
-  ], "group-browser");
+    appendChoices([
+      { label: "I'm down", action: "group-browse-accept", primary: true },
+      { label: "Maybe next time", action: "group-browse-decline" },
+    ], "group-browser");
+  });
 }
 
 function acceptGroupBrowse() {
@@ -921,55 +1094,71 @@ function acceptGroupBrowse() {
   advanceSimulatedTime(3);
   appendOutgoing("I'm down");
   setParticipantScreen(11);
-  showParticipantTyping(() => {
-    beginGroupLockIn();
-  });
+  const lines = ["Awesome."];
+  showParticipantTyping(beginGroupLockIn, lines);
 }
 
 function beginGroupLockIn() {
-  appendIncoming(["Awesome.", "I'm checking with everyone else.", "Sit tight."]);
-  const status = appendConversation(`
-      <div class="message-row attachment-row">
-        <div class="confirmation-progress" data-confirmation-progress>
-          <div class="confirmation-line is-complete">Jacob confirmed</div>
-          <div class="confirmation-line" data-confirmation="olivia">Checking with Olivia...</div>
-          <div class="confirmation-line" data-confirmation="kayla">Waiting for Kayla</div>
-          <div class="confirmation-line" data-confirmation="lucas">Waiting for one more person</div>
-        </div>
-      </div>
-    `);
-  const update = (id, text, delay) => scheduleParticipant(() => {
-    const line = status.querySelector(`[data-confirmation='${id}']`);
-    line.textContent = text;
-    line.classList.add("is-complete");
-    scrollParticipantThread();
-  }, delay);
-  update("olivia", "Olivia confirmed", 650);
-  update("kayla", "Kayla confirmed", 1250);
-  update("lucas", "Lucas confirmed", 1950);
+  const confirmationLines = ["I'm checking with everyone else.", "Sit tight."];
+  appendIncoming(["Awesome."]);
   scheduleParticipant(() => {
-    advanceSimulatedTime(6);
-    appendIncoming(["Everyone's in.", "Your group is locked."]);
-    renderAvailability();
-  }, 2550);
+    advanceSimulatedTime(1);
+    showParticipantTyping(() => {
+      appendIncoming(confirmationLines);
+      const status = appendConversation(`
+          <div class="message-row attachment-row">
+            <div class="confirmation-progress" data-confirmation-progress>
+              <div class="confirmation-line is-complete">Jacob confirmed</div>
+              <div class="confirmation-line" data-confirmation="olivia">Checking with Olivia...</div>
+              <div class="confirmation-line" data-confirmation="kayla">Waiting for Kayla</div>
+              <div class="confirmation-line" data-confirmation="lucas">Waiting for one more person</div>
+            </div>
+          </div>
+        `);
+      const update = (id, text, delay) => scheduleParticipant(() => {
+        const line = status.querySelector(`[data-confirmation='${id}']`);
+        line.textContent = text;
+        line.classList.add("is-complete");
+        scrollParticipantThread();
+      }, delay);
+      update("olivia", "Olivia confirmed", 650);
+      update("kayla", "Kayla confirmed", 1250);
+      update("lucas", "Lucas confirmed", 1950);
+      scheduleParticipant(() => {
+        advanceSimulatedTime(6);
+        const everyoneLines = ["Everyone's in."];
+        showParticipantTyping(() => {
+          appendIncoming(everyoneLines);
+          scheduleParticipant(() => {
+            advanceSimulatedTime(0.5);
+            const lockedLines = ["Your group is locked."];
+            showParticipantTyping(() => {
+              appendIncoming(lockedLines);
+              scheduleParticipant(renderAvailability, readingPauseMs(lockedLines));
+            }, lockedLines);
+          }, readingPauseMs(everyoneLines));
+        }, everyoneLines);
+      }, 2550);
+    }, confirmationLines);
+  }, readingPauseMs(["Awesome."]));
 }
 
 function renderAvailability() {
   setParticipantScreen(12);
+  const lines = [
+    "Now let's find a time that works for everyone.",
+    "Choose every time you're available this week.",
+  ];
   showParticipantTyping(() => {
-    appendIncoming([
-      "Now let's find a time that works for everyone.",
-      "Choose every time you're available this week.",
-    ]);
-    const slots = ["Thursday Evening", "Friday Evening", "Saturday Afternoon", "Saturday Evening", "Sunday Afternoon"];
+    appendIncoming(lines);
     appendConversation(`
       <div class="message-row attachment-row" data-control="availability">
         <div class="availability-picker">
           <div class="availability-options">
-            ${slots.map((slot) => `
+            ${AVAILABILITY_SLOTS.map((slot) => `
               <label class="availability-option">
-                <input type="checkbox" value="${slot}">
-                <span>${slot}</span>
+                <input type="checkbox" value="${slot.label}">
+                <span>${slot.label}</span>
               </label>
             `).join("")}
           </div>
@@ -982,11 +1171,14 @@ function renderAvailability() {
       participantState.availability = new Set([...picker.querySelectorAll("input:checked")].map((item) => item.value));
       picker.querySelector("[data-participant-action='submit-availability']").disabled = participantState.availability.size === 0;
     }));
-  });
+  }, lines);
 }
 
 function submitAvailability() {
   if (participantState.availability.size === 0) return;
+  const nextSchedule = createSimulatedSchedule(sessionAnchorDate, [...participantState.availability]);
+  if (!Number.isFinite(nextSchedule.liveDateTimestampMinutes)) return;
+  Object.assign(simulatedSchedule, nextSchedule);
   completeControl("availability");
   advanceSimulatedTime(5);
   appendOutgoing([...participantState.availability].join(" · "));
@@ -998,8 +1190,10 @@ function submitAvailability() {
 
 function renderPlanningProgress() {
   setParticipantScreen(13);
-  showParticipantTyping(() => {
-    appendIncoming(["Perfect.", "Give me a minute.", "I'm putting everything together."]);
+  appendPacedIncoming([
+    ["Perfect."],
+    ["Give me a minute.", "I'm putting everything together."],
+  ], () => {
     const steps = ["Everyone confirmed", "Availability aligned", "Weather checked", "Local events", "Best locations", "Group preferences", "Logistics", "Experience ready"];
     const progress = appendConversation(`
       <div class="message-row attachment-row">
@@ -1019,14 +1213,16 @@ function renderPlanningProgress() {
 function renderExperienceReveal() {
   setParticipantScreen(14);
   advanceSimulatedTime(3);
-  showParticipantTyping(() => {
-    appendIncoming(["Okay.", "I found your plan."]);
+  appendPacedIncoming([
+    ["Okay."],
+    ["I found your plan."],
+  ], () => {
     appendConversation(`
       <div class="message-row attachment-row">
         <article class="participant-experience-card" data-experience-card>
           <img src="${groupPhotos.beachCookout}" alt="${beachDateFlow.title} at sunset">
           <div class="experience-card-copy">
-            <p class="participant-kicker">Friday, July 17 · ${beachDateFlow.startTime}</p>
+            <p class="participant-kicker">${formatSimulatedCalendarDate(simulatedSchedule.liveDateTimestampMinutes)} · ${scheduledStartTime()}</p>
             <h2>${beachDateFlow.title}</h2>
             <p>Cook together, compete a little, then stay for the sunset.</p>
             <span>${beachDateFlow.venue}</span>
@@ -1045,10 +1241,10 @@ function showExperienceDetails() {
   card.innerHTML = `
     <img src="${groupPhotos.beachCookout}" alt="${beachDateFlow.title} at sunset">
     <div class="experience-card-copy experience-details-copy">
-      <p class="participant-kicker">Friday, July 17</p>
+      <p class="participant-kicker">${formatSimulatedCalendarDate(simulatedSchedule.liveDateTimestampMinutes)}</p>
       <h2>${beachDateFlow.title}</h2>
       <div class="experience-facts">
-        <div><span>Time</span><strong>${beachDateFlow.startTime}–8:30 PM</strong></div>
+        <div><span>Time</span><strong>${scheduledStartTime()}–8:30 PM</strong></div>
         <div><span>Meet</span><strong>${beachDateFlow.venue}</strong></div>
         <div><span>Estimated cost</span><strong>$15–$20</strong></div>
         <div><span>Weather</span><strong>22°C and clear</strong></div>
@@ -1071,7 +1267,7 @@ function simulateCalendarAdd(button) {
   button.disabled = true;
   button.textContent = "Added to Calendar";
   const status = app.querySelector(".calendar-status");
-  status.textContent = `Calendar updated for Friday at ${beachDateFlow.startTime}.`;
+  status.textContent = `Calendar updated for ${simulatedWeekdayLabel(simulatedSchedule.liveDateTimestampMinutes)} at ${scheduledStartTime()}.`;
 }
 
 function startPostcardPick(button) {
@@ -1079,15 +1275,11 @@ function startPostcardPick(button) {
   advanceSimulatedTime(2);
   appendOutgoing("Got it");
   setParticipantScreen(16);
-  showParticipantTyping(() => {
-    appendIncoming([
-      "That's everything you need for now.",
-      "I'll handle the rest when the date begins.",
-      "One thing before the date.",
-      "Send me a photo of a place, object, or moment that means something to you.",
-      "Nothing too serious.",
-      "Just something with a story behind it.",
-    ]);
+  appendPacedIncoming([
+    ["That's everything you need for now.", "I'll handle the rest when the date begins."],
+    ["One thing before the date."],
+    ["Send me a photo of a place, object, or moment that means something to you.", "Nothing too serious.", "Just something with a story behind it."],
+  ], () => {
     appendConversation(`
       <div class="message-row attachment-row" data-control="postcard-upload">
         <div class="postcard-upload-card">
@@ -1122,25 +1314,19 @@ function submitPostcard() {
       liveDateState.submittedPhotos[participantId] = postcardSubmissions[participantId];
     }
   });
-  const upload = app.querySelector("[data-control='postcard-upload']");
-  const caption = upload.querySelector(".postcard-caption").value.trim();
   completeControl("postcard-upload");
   const sentEntryId = nextParticipantEntryId("postcard");
-  const sent = appendConversation(`
+  appendConversation(`
     <div class="message-row outgoing-row" data-entry-id="${sentEntryId}" data-message-timestamp="${simulatedTimeline.currentTimestampMinutes}">
       <div class="sent-postcard">
         <img src="${participantState.uploadedPostcard}" alt="Your private postcard submission">
-        ${caption ? "<p data-sent-caption></p>" : ""}
-        <span>Sent privately</span>
-        <time class="live-message-time" data-message-time>${formatMessageTimestamp(simulatedTimeline.currentTimestampMinutes)}</time>
       </div>
     </div>
   `);
-  if (caption) sent.querySelector("[data-sent-caption]").textContent = caption;
-  showParticipantTyping(() => {
-    appendIncoming(["Everyone sent something in.", "Pick the one you're most curious about.", "Don't overthink it."]);
-    renderEligiblePostcards();
-  }, 950);
+  appendPacedIncoming([
+    ["Everyone sent something in."],
+    ["Pick the one you're most curious about.", "Don't overthink it."],
+  ], renderEligiblePostcards);
 }
 
 function renderEligiblePostcards() {
@@ -1180,32 +1366,34 @@ function confirmPostcardSelection() {
   completeControl("postcard-selection");
   advanceSimulatedTime(2);
   appendOutgoing("Picked one");
-  showParticipantTyping(() => {
-    appendIncoming(["Got it.", "You'll find out why during the date."]);
-    scheduleParticipant(renderOneDayReminder, 800);
-  });
+  appendPacedIncoming([
+    ["Got it."],
+    ["You'll find out why during the date."],
+  ], () => scheduleParticipant(renderOneDayReminder, 800));
 }
 
 function renderOneDayReminder() {
   setParticipantScreen(17);
-  setSimulatedTime(simulatedSchedule.liveDateTimestampMinutes);
+  setSimulatedTime(simulatedSchedule.dayBeforeTimestampMinutes);
   appendTimeDivider();
+  const liveDateDayLabel = relativeSimulatedDayLabel(simulatedSchedule.liveDateTimestampMinutes);
+  const lines = [
+    `${liveDateDayLabel} 👀`,
+    beachDateFlow.title,
+    `${liveDateDayLabel} at ${scheduledStartTime()}`,
+    beachDateFlow.venue,
+    "Everyone's still in.",
+    "Looks like 22°C and clear.",
+    "Bring a light hoodie for later.",
+    "I'll message you again before it starts.",
+  ];
   showParticipantTyping(() => {
-    appendIncoming([
-      "Today 👀",
-      beachDateFlow.title,
-      `Today at ${beachDateFlow.startTime}`,
-      beachDateFlow.venue,
-      "Everyone's still in.",
-      "Looks like 22°C and clear.",
-      "Bring a light hoodie for later.",
-      "I'll message you again before it starts.",
-    ]);
+    appendIncoming(lines);
     appendChoices([
       { label: "View Details", action: "reminder-details", primary: true },
       { label: "Got it", action: "reminder-got-it" },
     ], "reminder");
-  });
+  }, lines);
 }
 
 function showReminderDetails(button) {
@@ -1214,7 +1402,7 @@ function showReminderDetails(button) {
     <div class="message-row attachment-row">
       <div class="compact-reminder-card">
         <img src="${groupPhotos.beachCookout}" alt="${beachDateFlow.title}">
-        <div><strong>${simulatedWeekdayLabel(simulatedSchedule.liveDateTimestampMinutes)} · ${beachDateFlow.startTime}</strong><span>${beachDateFlow.venue}</span><span>22°C and clear · Bring a light hoodie</span></div>
+        <div><strong>${simulatedWeekdayLabel(simulatedSchedule.liveDateTimestampMinutes)} · ${scheduledStartTime()}</strong><span>${beachDateFlow.venue}</span><span>22°C and clear · Bring a light hoodie</span></div>
       </div>
     </div>
   `);
@@ -1227,13 +1415,14 @@ function showDateStart() {
   setParticipantScreen(18);
   scheduleParticipant(() => {
     appendTimeDivider();
+    const lines = [
+      "You're here.",
+      "Date starts now.",
+      "Say hi to everyone first.",
+      "I'll send the next step when you're ready.",
+    ];
     showParticipantTyping(() => {
-      appendIncoming([
-        "You're here.",
-        "Date starts now.",
-        "Say hi to everyone first.",
-        "I'll send the next step when you're ready.",
-      ]);
+      appendIncoming(lines);
       appendConversation(`
         <div class="message-row attachment-row" data-control="arrival">
           <div class="group-live-card">
@@ -1245,7 +1434,7 @@ function showDateStart() {
           </div>
         </div>
       `);
-    });
+    }, lines);
   }, 700);
 }
 
@@ -1264,13 +1453,18 @@ function checkMissingParticipant() {
   appendOutgoing("Someone's missing");
   const live = app.querySelector(".group-live-status span");
   live.textContent = "Arrival check in progress";
+  const checkingLines = ["I'm checking in with them now.", "Give me a minute."];
   showParticipantTyping(() => {
-    appendIncoming(["I'm checking in with them now.", "Give me a minute."]);
+    appendIncoming(checkingLines);
     scheduleParticipant(() => {
-      appendIncoming(["Everyone's here now."]);
-      appendChoices([{ label: "We're ready", action: "arrival-complete-after-check", primary: true }], "arrival-check");
-    }, 1100);
-  });
+      advanceSimulatedTime(0.5);
+      const readyLines = ["Everyone's here now."];
+      showParticipantTyping(() => {
+        appendIncoming(readyLines);
+        appendChoices([{ label: "We're ready", action: "arrival-complete-after-check", primary: true }], "arrival-check");
+      }, readyLines);
+    }, readingPauseMs(checkingLines));
+  }, checkingLines);
 }
 
 function confirmArrivalAfterCheck() {
@@ -1303,7 +1497,7 @@ function disabledControlHtml(html) {
 }
 
 function formatSimulatedTime(totalMinutes) {
-  const normalized = ((totalMinutes % MINUTES_PER_DAY) + MINUTES_PER_DAY) % MINUTES_PER_DAY;
+  const normalized = ((Math.floor(totalMinutes) % MINUTES_PER_DAY) + MINUTES_PER_DAY) % MINUTES_PER_DAY;
   const hour24 = Math.floor(normalized / 60);
   const minutes = normalized % 60;
   const period = hour24 >= 12 ? "PM" : "AM";
@@ -1317,6 +1511,15 @@ function simulatedCalendarDay(timestampMinutes) {
 
 function simulatedWeekdayLabel(timestampMinutes) {
   return SIMULATED_WEEKDAYS[new Date(timestampMinutes * 60000).getUTCDay()];
+}
+
+function formatSimulatedCalendarDate(timestampMinutes) {
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(timestampMinutes * 60000));
 }
 
 function relativeSimulatedDayLabel(timestampMinutes) {
@@ -1341,6 +1544,10 @@ function currentLiveDateTime() {
   return formatSimulatedTime(simulatedTimeline.currentTimestampMinutes);
 }
 
+function scheduledStartTime() {
+  return formatSimulatedTime(simulatedSchedule.liveDateTimestampMinutes);
+}
+
 function refreshSimulatedTimelineLabels() {
   app.querySelectorAll("[data-date-separator-timestamp]").forEach((separator) => {
     const timestampMinutes = Number(separator.dataset.dateSeparatorTimestamp);
@@ -1362,8 +1569,8 @@ function setSimulatedTime(totalMinutes) {
 }
 
 function initializeLiveDateClock() {
-  if (simulatedTimeline.currentTimestampMinutes < beachDateFlow.startTimestampMinutes) {
-    setSimulatedTime(beachDateFlow.startTimestampMinutes);
+  if (simulatedTimeline.currentTimestampMinutes < simulatedSchedule.liveDateTimestampMinutes) {
+    setSimulatedTime(simulatedSchedule.liveDateTimestampMinutes);
   }
 }
 
@@ -1408,13 +1615,98 @@ function renderDateEntry(entry) {
   return `<div class="message-row participant-control-row live-date-control ${entry.completed ? "is-complete" : ""}" data-entry-id="${escapeHtml(entry.id)}" data-control="${entry.controlId}">${content}</div>`;
 }
 
+function renderedDateEntry(conversation, entryId) {
+  return [...conversation.querySelectorAll("[data-entry-id]")]
+    .find((element) => element.dataset.entryId === entryId);
+}
+
+function updateRenderedDateControls(conversation, entries) {
+  entries.filter((entry) => entry.type === "control").forEach((entry) => {
+    const element = renderedDateEntry(conversation, entry.id);
+    if (!element) return;
+    element.classList.toggle("is-complete", entry.completed);
+    element.querySelectorAll("button, input, select, textarea").forEach((control) => {
+      control.disabled = entry.completed;
+    });
+  });
+}
+
+function suppressSnapshotAnimations(conversation) {
+  conversation.querySelectorAll(".message-row, .message-bubble, .participant-profile-card").forEach((element) => {
+    element.style.animation = "none";
+  });
+}
+
+function appendPendingNonIncomingDateEntries(conversation, entries) {
+  let nextEntry = entries.find((entry) => !renderedDateEntry(conversation, entry.id));
+  while (nextEntry && nextEntry.type !== "incoming") {
+    conversation.insertAdjacentHTML("beforeend", renderDateEntry(nextEntry));
+    nextEntry = entries.find((entry) => !renderedDateEntry(conversation, entry.id));
+  }
+}
+
 function renderActiveDateThread() {
   const participantId = liveDateState.activeParticipantId;
   const record = liveDateRecord(participantId);
   const conversation = participantConversation();
   if (!conversation || !record) return;
 
-  conversation.innerHTML = `${liveDateState.preDateHtmlByParticipant[participantId] || ""}${record.messages.map(renderDateEntry).join("")}`;
+  const renderedParticipantId = conversation.dataset.liveParticipantId;
+  const participantChanged = Boolean(renderedParticipantId && renderedParticipantId !== participantId);
+  const requiresSnapshot = participantChanged || (!renderedParticipantId && participantId !== "jacob");
+
+  if (requiresSnapshot) {
+    conversation.innerHTML = `${liveDateState.preDateHtmlByParticipant[participantId] || ""}${record.messages.map(renderDateEntry).join("")}`;
+    conversation.dataset.liveParticipantId = participantId;
+    delete conversation.dataset.liveTyping;
+    delete conversation.dataset.liveReading;
+    suppressSnapshotAnimations(conversation);
+  } else {
+    conversation.dataset.liveParticipantId = participantId;
+    updateRenderedDateControls(conversation, record.messages);
+
+    const nextEntry = record.messages.find((entry) => !renderedDateEntry(conversation, entry.id));
+    const isReading = conversation.dataset.liveReading === participantId;
+    if (nextEntry && !isReading) {
+      if (nextEntry.type === "incoming") {
+        if (conversation.dataset.liveTyping !== participantId) {
+          conversation.dataset.liveTyping = participantId;
+          showParticipantTyping(() => {
+            if (conversation.dataset.liveParticipantId === participantId) {
+              delete conversation.dataset.liveTyping;
+            }
+            if (
+              liveDateState.activeParticipantId === participantId
+              && participantConversation() === conversation
+              && !renderedDateEntry(conversation, nextEntry.id)
+            ) {
+              conversation.insertAdjacentHTML("beforeend", renderDateEntry(nextEntry));
+              appendPendingNonIncomingDateEntries(conversation, record.messages);
+              refreshSimulatedTimelineLabels();
+              scrollParticipantThread();
+              conversation.dataset.liveReading = participantId;
+              scheduleParticipant(() => {
+                if (
+                  conversation.dataset.liveParticipantId === participantId
+                  && conversation.dataset.liveReading === participantId
+                ) {
+                  delete conversation.dataset.liveReading;
+                }
+                renderActiveDateThread();
+              }, readingPauseMs(nextEntry.lines));
+              return;
+            }
+            renderActiveDateThread();
+          }, nextEntry.lines);
+        }
+      } else {
+        appendPendingNonIncomingDateEntries(conversation, record.messages);
+        renderActiveDateThread();
+        return;
+      }
+    }
+  }
+
   app.querySelectorAll("[data-pov-id]").forEach((button) => {
     button.classList.toggle("is-active", button.dataset.povId === participantId);
   });
@@ -1431,7 +1723,19 @@ function addDateEntries(participantIds, entries, namespace) {
     entries.forEach((entry, index) => {
       const entryId = `${namespace}:${participantId}:${entry.entryKey || index}`;
       if (record.messages.some((message) => message.id === entryId)) return;
-      record.messages.push(cloneDateEntry(entry, entryId));
+      const copy = cloneDateEntry(entry, entryId);
+      const previousTimestamp = [...record.messages]
+        .reverse()
+        .find((message) => Number.isFinite(message.timestampMinutes))
+        ?.timestampMinutes;
+      if (
+        (copy.type === "incoming" || copy.type === "outgoing")
+        && Number.isFinite(previousTimestamp)
+        && copy.timestampMinutes <= previousTimestamp
+      ) {
+        copy.timestampMinutes = previousTimestamp + 0.5;
+      }
+      record.messages.push(copy);
     });
   });
 }
@@ -1553,13 +1857,29 @@ function beginLiveDate() {
       : [{ type: "divider", minutes: simulatedTimeline.currentTimestampMinutes, entryKey: "divider" }];
     addDateEntries([participantId], [
       ...divider,
-      incomingDateEntry(["Perfect.", "Take a moment and say hi."], undefined, "arrival-greeting"),
-      incomingDateEntry(["Phones away for a minute.", "I'll step in when I'm needed."], undefined, "phones-away"),
-      ...postcardRevealFor(participantId),
+      incomingDateEntry(["Perfect."], undefined, "arrival-greeting"),
     ], "phase-arrival");
   });
   renderActiveDateThread();
-  scheduleParticipant(showLinkedDodgeball, 1200, "live-linked-dodgeball");
+  scheduleParticipant(() => {
+    addSharedDateEntries([incomingDateEntry(["Take a moment and say hi."])], "phase-arrival-followup");
+    renderActiveDateThread();
+  }, 350, "live-arrival-followup");
+  scheduleParticipant(() => {
+    addSharedDateEntries([incomingDateEntry(["Phones away for a minute.", "I'll step in when I'm needed."])], "phase-arrival-phones-away");
+    renderActiveDateThread();
+  }, 700, "live-arrival-phones-away");
+  scheduleParticipant(() => {
+    addSharedDateEntries([incomingDateEntry(["Keep your age, occupation, and contact details private for now. Ditto will let you know when each one unlocks."])], "phase-arrival-information-privacy");
+    renderActiveDateThread();
+  }, 1050, "live-arrival-information-privacy");
+  scheduleParticipant(() => {
+    selectedIds.forEach((participantId) => {
+      addDateEntries([participantId], postcardRevealFor(participantId), "phase-arrival-postcard-reveal");
+    });
+    renderActiveDateThread();
+  }, 1400, "live-arrival-postcard-reveal");
+  scheduleParticipant(showLinkedDodgeball, 1900, "live-linked-dodgeball");
 }
 
 function showLinkedDodgeball() {
@@ -1593,9 +1913,23 @@ function finishLinkedDodgeball() {
   const loser = liveDateState.firstPairing[1];
   liveDateState.dodgeballResult = { winner, loser: [...loser], score: "5–3" };
   liveDateState.completedTasks.push("linked-dodgeball");
-  addSharedDateEntries([incomingDateEntry([`${pairLabel(winner)} won, 5–3.`, "Keep that energy."], completionMinutes)], "result-linked-dodgeball");
+  addSharedDateEntries([incomingDateEntry([`${pairLabel(winner)} won, 5–3.`], completionMinutes)], "result-linked-dodgeball");
   renderActiveDateThread();
-  scheduleParticipant(showCouplePhotoChallenge, 850, "live-couple-photo");
+  scheduleParticipant(() => {
+    addSharedDateEntries([incomingDateEntry(["Keep that energy."], completionMinutes)], "result-linked-dodgeball-followup");
+    renderActiveDateThread();
+  }, 350, "live-linked-dodgeball-followup");
+  scheduleParticipant(() => {
+    addSharedDateEntries([incomingDateEntry(["Occupation unlocked."], completionMinutes)], "occupation-unlock");
+    renderActiveDateThread();
+  }, 700, "live-occupation-unlock");
+  scheduleParticipant(() => {
+    addSharedDateEntries([incomingDateEntry([
+      "You can tell the group what you do or what you're studying now. Keep your age and contact details private.",
+    ], completionMinutes)], "occupation-unlock-followup");
+    renderActiveDateThread();
+  }, 1050, "live-occupation-unlock-followup");
+  scheduleParticipant(showCouplePhotoChallenge, 1450, "live-couple-photo");
 }
 
 function showCouplePhotoChallenge() {
@@ -1629,12 +1963,19 @@ function finishCouplePhotoChallenge() {
   liveDateState.couplePhotoLosingPair = [...loser];
   liveDateState.ingredientPreparationPair = [...loser];
   liveDateState.completedTasks.push("couple-photo");
-  addSharedDateEntries([incomingDateEntry([
-    `${pairLabel(winner)} won.`,
-    "Grill duty is still open.",
-  ], completionMinutes)], "result-couple-photo");
+  addSharedDateEntries([incomingDateEntry([`${pairLabel(winner)} won.`], completionMinutes)], "result-couple-photo");
   renderActiveDateThread();
-  scheduleParticipant(showCookoutSetup, 850, "live-cookout-setup");
+  scheduleParticipant(() => {
+    addSharedDateEntries([incomingDateEntry(["Age unlocked."], completionMinutes)], "age-unlock");
+    renderActiveDateThread();
+  }, 700, "live-age-unlock");
+  scheduleParticipant(() => {
+    addSharedDateEntries([incomingDateEntry([
+      "You can share your age now. Contact details stay private until after the date.",
+    ], completionMinutes)], "age-unlock-followup");
+    renderActiveDateThread();
+  }, 1050, "live-age-unlock-followup");
+  scheduleParticipant(showCookoutSetup, 1450, "live-cookout-setup");
 }
 
 function showCookoutSetup() {
@@ -1917,6 +2258,18 @@ function resolveMidnightResults() {
         `You and ${personById(partnerId).name} both chose each other.`,
         "I'll take it from here.",
       ], simulatedTimeline.currentTimestampMinutes)], "midnight-result");
+      addDateEntries([participantId], [
+        incomingDateEntry([
+          `Would you like to share your Instagram with ${personById(partnerId).name}?`,
+          "Your choice is private and locks when you confirm it.",
+        ], simulatedTimeline.currentTimestampMinutes),
+        controlDateEntry(`instagram-sharing-${participantId}`, `
+          <div class="message-actions">
+            <button class="message-action primary" data-participant-action="instagram-share">Share Instagram</button>
+            <button class="message-action secondary" data-participant-action="instagram-not-now">Not now</button>
+          </div>
+        `),
+      ], "instagram-sharing-prompt");
     } else {
       liveDateState.midnightResults[participantId] = { type: "non_mutual" };
       liveDateRecord(participantId).midnightResult = { type: "non_mutual" };
@@ -1929,9 +2282,46 @@ function resolveMidnightResults() {
   });
 }
 
+function submitInstagramSharingChoice(choice) {
+  const participantId = liveDateState.activeParticipantId;
+  const record = liveDateRecord(participantId);
+  const partnerId = record.midnightResult?.type === "mutual"
+    ? record.midnightResult.partnerId
+    : undefined;
+  if (!partnerId || record.instagramShareLocked) return;
+
+  record.instagramShareChoice = choice;
+  record.instagramShareLocked = true;
+  completeLiveDateControl(`instagram-sharing-${participantId}`, [participantId]);
+
+  if (choice === "share") {
+    addDateEntries([participantId], [
+      outgoingDateEntry("Share Instagram", simulatedTimeline.currentTimestampMinutes),
+      incomingDateEntry([
+        "Locked.",
+        `I'll share your Instagram with ${personById(partnerId).name}.`,
+      ], simulatedTimeline.currentTimestampMinutes),
+    ], "instagram-sharing-choice");
+    addDateEntries([partnerId], [incomingDateEntry([
+      `${personById(participantId).name} shared their Instagram with you.`,
+      personById(participantId).instagramHandle,
+    ], simulatedTimeline.currentTimestampMinutes)], `instagram-handle-${participantId}`);
+  } else {
+    addDateEntries([participantId], [
+      outgoingDateEntry("Not now", simulatedTimeline.currentTimestampMinutes),
+      incomingDateEntry([
+        "Got it.",
+        "Your Instagram stays private.",
+      ], simulatedTimeline.currentTimestampMinutes),
+    ], "instagram-sharing-choice");
+  }
+
+  renderActiveDateThread();
+}
+
 function fastForwardToMidnight() {
   if (liveDateState.midnightRevealGenerated) return;
-  setSimulatedTime(liveDatePhase("midnight-reveal").targetTimeMinutes);
+  setSimulatedTime(simulatedSchedule.midnightTimestampMinutes);
   selectedIds.forEach((participantId) => {
     completeLiveDateControl(`midnight-fast-forward-${participantId}`, [participantId]);
     addDateEntries([participantId], [{ type: "divider", minutes: simulatedTimeline.currentTimestampMinutes, entryKey: "divider" }], "phase-midnight-reveal");
