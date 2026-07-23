@@ -92,7 +92,7 @@ const applicants = [
     gender: "man",
     interestedIn: ["woman"],
     relationshipIntention: "Open to seeing what happens",
-    relationshipIntentions: ["long-term", "open-to-connection"],
+    relationshipIntentions: ["serious_relationship"],
     preferredDateCategories: ["creative", "food-and-drink", "outdoors"],
     competitiveness: 3,
     creativity: 5,
@@ -131,7 +131,7 @@ const applicants = [
     gender: "woman",
     interestedIn: ["man"],
     relationshipIntention: "A relationship",
-    relationshipIntentions: ["long-term"],
+    relationshipIntentions: ["serious_relationship"],
     preferredDateCategories: ["creative", "outdoors", "culture-and-nightlife"],
     competitiveness: 2,
     creativity: 5,
@@ -170,7 +170,7 @@ const applicants = [
     gender: "woman",
     interestedIn: ["man", "nonbinary"],
     relationshipIntention: "Casual dates, open to more",
-    relationshipIntentions: ["casual-dating", "open-to-connection", "long-term"],
+    relationshipIntentions: ["casual_dating", "serious_relationship"],
     preferredDateCategories: ["active", "food-and-drink", "culture-and-nightlife"],
     competitiveness: 5,
     creativity: 3,
@@ -209,7 +209,7 @@ const applicants = [
     gender: "man",
     interestedIn: ["woman"],
     relationshipIntention: "A serious relationship",
-    relationshipIntentions: ["long-term"],
+    relationshipIntentions: ["serious_relationship"],
     preferredDateCategories: ["creative", "food-and-drink", "outdoors"],
     competitiveness: 3,
     creativity: 5,
@@ -248,7 +248,7 @@ const applicants = [
     gender: "woman",
     interestedIn: ["man", "woman", "nonbinary"],
     relationshipIntention: "Friendship first, open to romance",
-    relationshipIntentions: ["friendship-first", "long-term"],
+    relationshipIntentions: ["friendship", "serious_relationship"],
     preferredDateCategories: ["creative", "outdoors", "culture-and-nightlife"],
     competitiveness: 1,
     creativity: 4,
@@ -287,7 +287,7 @@ const applicants = [
     gender: "man",
     interestedIn: ["woman", "nonbinary"],
     relationshipIntention: "Casual dates",
-    relationshipIntentions: ["casual-dating", "open-to-connection"],
+    relationshipIntentions: ["casual_dating"],
     preferredDateCategories: ["active", "food-and-drink", "culture-and-nightlife"],
     competitiveness: 5,
     creativity: 2,
@@ -326,7 +326,7 @@ const applicants = [
     gender: "man",
     interestedIn: ["woman", "nonbinary"],
     relationshipIntention: "Friendship first, open to a relationship",
-    relationshipIntentions: ["friendship-first", "long-term"],
+    relationshipIntentions: ["friendship", "serious_relationship"],
     preferredDateCategories: ["creative", "outdoors", "culture-and-nightlife"],
     competitiveness: 2,
     creativity: 5,
@@ -365,7 +365,7 @@ const applicants = [
     gender: "man",
     interestedIn: ["woman", "nonbinary"],
     relationshipIntention: "Casual dating, open to more",
-    relationshipIntentions: ["casual-dating", "open-to-connection"],
+    relationshipIntentions: ["casual_dating"],
     preferredDateCategories: ["active", "food-and-drink", "culture-and-nightlife"],
     competitiveness: 4,
     creativity: 2,
@@ -404,7 +404,7 @@ const applicants = [
     gender: "woman",
     interestedIn: ["man", "nonbinary"],
     relationshipIntention: "Open to a relationship if it develops naturally",
-    relationshipIntentions: ["open-to-connection", "long-term"],
+    relationshipIntentions: ["serious_relationship"],
     preferredDateCategories: ["food-and-drink", "culture-and-nightlife", "outdoors"],
     competitiveness: 3,
     creativity: 4,
@@ -443,7 +443,7 @@ const applicants = [
     gender: "woman",
     interestedIn: ["man", "nonbinary"],
     relationshipIntention: "Friendship first, looking for something real",
-    relationshipIntentions: ["friendship-first", "long-term"],
+    relationshipIntentions: ["friendship", "serious_relationship"],
     preferredDateCategories: ["creative", "outdoors", "culture-and-nightlife"],
     competitiveness: 1,
     creativity: 5,
@@ -482,7 +482,7 @@ const applicants = [
     gender: "woman",
     interestedIn: ["man", "nonbinary"],
     relationshipIntention: "Casual dating, open to a relationship",
-    relationshipIntentions: ["casual-dating", "open-to-connection"],
+    relationshipIntentions: ["casual_dating"],
     preferredDateCategories: ["active", "food-and-drink", "culture-and-nightlife"],
     competitiveness: 4,
     creativity: 3,
@@ -521,7 +521,7 @@ const applicants = [
     gender: "nonbinary",
     interestedIn: ["man", "woman", "nonbinary"],
     relationshipIntention: "Friendship first, open to connection",
-    relationshipIntentions: ["friendship-first", "open-to-connection", "long-term"],
+    relationshipIntentions: ["friendship", "serious_relationship"],
     preferredDateCategories: ["creative", "outdoors", "culture-and-nightlife"],
     competitiveness: 2,
     creativity: 5,
@@ -562,9 +562,31 @@ const romanticEligibilityPairs = [
   ["lucas", "kayla"],
 ];
 
+const RELATIONSHIP_INTENTION_VALUES = ["serious_relationship", "casual_dating", "friendship"];
+const SHARED_RELATIONSHIP_MODE_PRIORITY = ["friendship", "casual_dating", "serious_relationship"];
+
 function sharedProfileValues(profiles, field) {
   if (profiles.length === 0) return [];
   return profiles[0][field].filter((value) => profiles.every((profile) => profile[field].includes(value)));
+}
+
+function sharedRelationshipIntentions(group) {
+  return sharedProfileValues(group, "relationshipIntentions")
+    .filter((intention) => RELATIONSHIP_INTENTION_VALUES.includes(intention));
+}
+
+function selectSharedRelationshipIntention(group) {
+  const sharedIntentions = sharedRelationshipIntentions(group);
+  return SHARED_RELATIONSHIP_MODE_PRIORITY.find((intention) => sharedIntentions.includes(intention));
+}
+
+function preDateFormatForGroup(group, selectedSharedMode = selectSharedRelationshipIntention(group)) {
+  const allIncludeSerious = group.every((profile) => (
+    profile.relationshipIntentions.includes("serious_relationship")
+  ));
+  return selectedSharedMode === "serious_relationship" && allIncludeSerious
+    ? "relationship_booklet"
+    : "anonymous_photo_or_object";
 }
 
 function highlightedProfileValues(profiles, field) {
@@ -642,15 +664,8 @@ function socialEnergyExplanation(group) {
 }
 
 function explainCandidateGroup(group, configurations) {
-  const relationshipAlignments = new Set();
-  configurations.forEach((configuration) => {
-    configuration.forEach((pair) => {
-      const [first, second] = pair;
-      first.relationshipIntentions
-        .filter((intention) => second.relationshipIntentions.includes(intention))
-        .forEach((intention) => relationshipAlignments.add(intention));
-    });
-  });
+  const relationshipIntentionAlignment = sharedRelationshipIntentions(group);
+  const sharedRelationshipIntention = selectSharedRelationshipIntention(group);
   return {
     strongestSharedInterests: highlightedProfileValues(group, "interests"),
     compatibleDatePreferences: highlightedProfileValues(group, "preferredDateCategories"),
@@ -659,7 +674,9 @@ function explainCandidateGroup(group, configurations) {
       participantId: profile.id,
       traits: [...profile.personalityTraits],
     })),
-    relationshipIntentionAlignment: [...relationshipAlignments].sort(),
+    relationshipIntentionAlignment,
+    sharedRelationshipIntention,
+    preDateFormat: preDateFormatForGroup(group, sharedRelationshipIntention),
     sharedAvailability: sharedProfileValues(group, "availabilitySlots"),
     validRomanticPairingConfigurations: {
       count: configurations.length,
@@ -708,12 +725,16 @@ function formDeterministicGroup(selectedUserId, pool = applicants) {
   const eligibleGroups = candidateGroupsFor(selectedUserId, pool)
     .map((group) => {
       const sharedAvailability = sharedProfileValues(group, "availabilitySlots");
+      const sharedRelationshipIntention = selectSharedRelationshipIntention(group);
       const configurations = futurePairingConfigurations(group);
-      if (sharedAvailability.length === 0 || configurations.length < 2) return undefined;
+      if (!sharedRelationshipIntention || sharedAvailability.length === 0 || configurations.length < 2) {
+        return undefined;
+      }
       const scoring = scoreCandidateGroup(group, configurations);
       return {
         group,
         configurations,
+        sharedRelationshipIntention,
         ...scoring,
       };
     })
@@ -731,6 +752,8 @@ function formDeterministicGroup(selectedUserId, pool = applicants) {
     members: selected.group.map((profile) => ({ id: profile.id, name: profile.name })),
     score: selected.score,
     scoreBreakdown: selected.scoreBreakdown,
+    sharedRelationshipIntention: selected.sharedRelationshipIntention,
+    preDateFormat: preDateFormatForGroup(selected.group, selected.sharedRelationshipIntention),
     explanation: explainCandidateGroup(selected.group, selected.configurations),
   };
 }
