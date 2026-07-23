@@ -81,22 +81,32 @@ const applicants = [
     id: "jacob",
     name: "Jacob",
     photo: "assets/characters/jacob.jpg",
+    image: "assets/characters/jacob.jpg",
     photoPosition: "50% 24%",
     university: "UCLA",
     major: "Film, Television & Digital Media",
     age: 22,
     occupation: "Film, Television & Digital Media student",
+    occupationOrStudy: "Film, Television & Digital Media student",
     school: "UCLA",
+    gender: "man",
+    interestedIn: ["woman"],
     relationshipIntention: "Open to seeing what happens",
+    relationshipIntentions: ["long-term", "open-to-connection"],
     preferredDateCategories: ["creative", "food-and-drink", "outdoors"],
+    competitiveness: 3,
+    creativity: 5,
     closenessComfortLevel: "medium",
     instagramHandle: "@jacobframes",
     location: "Los Angeles, CA",
     intention: "Open to seeing what happens",
     interests: ["night markets", "analog film", "cookouts"],
     traits: ["observant", "warm"],
+    personalityTraits: ["observant", "warm"],
     energy: "Quiet at first, playful once comfortable",
+    socialEnergy: "medium",
     availability: "Friday after 6:30 PM",
+    availabilitySlots: ["Friday Evening"],
     colorA: "#426f83",
     goals: "Wants something that can become real, without forcing it on date one.",
     lifestyle: "Lives near campus, studies late, and prefers dates with movement over sitting across a table.",
@@ -110,22 +120,32 @@ const applicants = [
     id: "olivia",
     name: "Olivia",
     photo: "assets/characters/olivia.jpg",
+    image: "assets/characters/olivia.jpg",
     photoPosition: "50% 28%",
     university: "USC",
     major: "Communication",
     age: 21,
     occupation: "Communication student",
+    occupationOrStudy: "Communication student",
     school: "USC",
+    gender: "woman",
+    interestedIn: ["man"],
     relationshipIntention: "A relationship",
+    relationshipIntentions: ["long-term"],
     preferredDateCategories: ["creative", "outdoors", "culture-and-nightlife"],
+    competitiveness: 2,
+    creativity: 5,
     closenessComfortLevel: "medium",
     instagramHandle: "@oliviamakes",
     location: "Los Angeles, CA",
     intention: "A relationship",
     interests: ["sunset walks", "ceramics", "playlist swaps"],
     traits: ["curious", "direct"],
+    personalityTraits: ["curious", "direct"],
     energy: "Social, but selective with attention",
+    socialEnergy: "medium",
     availability: "Friday after 7 PM",
+    availabilitySlots: ["Friday Evening"],
     colorA: "#805c8f",
     goals: "Looking for chemistry that feels easy in person and intentional after.",
     lifestyle: "Likes small groups, plans around creative projects, and prefers low-pressure first meetings.",
@@ -139,22 +159,32 @@ const applicants = [
     id: "kayla",
     name: "Kayla",
     photo: "assets/characters/kayla.jpg",
+    image: "assets/characters/kayla.jpg",
     photoPosition: "50% 25%",
     university: "Loyola Marymount University",
     major: "Marketing",
     age: 22,
     occupation: "Marketing student",
+    occupationOrStudy: "Marketing student",
     school: "Loyola Marymount University",
+    gender: "woman",
+    interestedIn: ["man", "nonbinary"],
     relationshipIntention: "Casual dates, open to more",
+    relationshipIntentions: ["casual-dating", "open-to-connection", "long-term"],
     preferredDateCategories: ["active", "food-and-drink", "culture-and-nightlife"],
+    competitiveness: 5,
+    creativity: 3,
     closenessComfortLevel: "high",
     instagramHandle: "@kaylaoutside",
     location: "Los Angeles, CA",
     intention: "Casual dates, open to more",
     interests: ["live music", "farmers markets", "volleyball"],
     traits: ["animated", "generous"],
+    personalityTraits: ["animated", "generous"],
     energy: "High-energy connector",
+    socialEnergy: "high",
     availability: "Friday after 6 PM",
+    availabilitySlots: ["Friday Evening", "Saturday Evening"],
     colorA: "#2a7c73",
     goals: "Wants to meet someone who can keep up without turning everything into a performance.",
     lifestyle: "Active schedule, outdoors whenever possible, and happiest when a plan has a little competition.",
@@ -168,22 +198,32 @@ const applicants = [
     id: "lucas",
     name: "Lucas",
     photo: "assets/characters/lucas.jpg",
+    image: "assets/characters/lucas.jpg",
     photoPosition: "50% 23%",
     university: "Cal State LA",
     major: "Graphic Design",
     age: 23,
     occupation: "Graphic Design student",
+    occupationOrStudy: "Graphic Design student",
     school: "Cal State LA",
+    gender: "man",
+    interestedIn: ["woman"],
     relationshipIntention: "A serious relationship",
+    relationshipIntentions: ["long-term"],
     preferredDateCategories: ["creative", "food-and-drink", "outdoors"],
+    competitiveness: 3,
+    creativity: 5,
     closenessComfortLevel: "medium",
     instagramHandle: "@lucasdraws",
     location: "Los Angeles, CA",
     intention: "A serious relationship",
     interests: ["barbecue", "strategy games", "campus trails"],
     traits: ["steady", "witty"],
+    personalityTraits: ["steady", "witty"],
     energy: "Calm center, dry humor",
+    socialEnergy: "low",
     availability: "Friday after 6:30 PM",
+    availabilitySlots: ["Friday Evening"],
     colorA: "#304d74",
     goals: "Open to a slow burn if the conversation feels honest.",
     lifestyle: "Prefers thoughtful plans, shared tasks, and dates where there is something to do with your hands.",
@@ -197,22 +237,32 @@ const applicants = [
     id: "maya",
     name: "Maya",
     photo: "assets/characters/maya.jpg",
+    image: "assets/characters/maya.jpg",
     photoPosition: "50% 25%",
     university: "UCLA",
     major: "Political Science",
     age: 21,
     occupation: "Political Science student",
+    occupationOrStudy: "Political Science student",
     school: "UCLA",
+    gender: "woman",
+    interestedIn: ["man", "woman", "nonbinary"],
     relationshipIntention: "Friendship first, open to romance",
+    relationshipIntentions: ["friendship-first", "long-term"],
     preferredDateCategories: ["creative", "outdoors", "culture-and-nightlife"],
+    competitiveness: 1,
+    creativity: 4,
     closenessComfortLevel: "low",
     instagramHandle: "@mayafrequencies",
     location: "Los Angeles, CA",
     intention: "Friendship first, open to romance",
     interests: ["student radio", "bookstores", "picnics"],
     traits: ["thoughtful", "funny"],
+    personalityTraits: ["thoughtful", "funny"],
     energy: "Gentle conversationalist",
+    socialEnergy: "low",
     availability: "Saturday afternoon",
+    availabilitySlots: ["Saturday Afternoon", "Sunday Afternoon"],
     colorA: "#6c5a90",
     goals: "Wants chemistry to grow through conversation before labels.",
     lifestyle: "Keeps a quieter calendar and prefers intimate settings.",
@@ -226,22 +276,32 @@ const applicants = [
     id: "ethan",
     name: "Ethan",
     photo: "assets/characters/ethan.jpg",
+    image: "assets/characters/ethan.jpg",
     photoPosition: "50% 24%",
     university: "Cal State LA",
     major: "Hospitality Management",
     age: 24,
     occupation: "Hospitality Management student and event server",
+    occupationOrStudy: "Hospitality Management student and event server",
     school: "Cal State LA",
+    gender: "man",
+    interestedIn: ["woman", "nonbinary"],
     relationshipIntention: "Casual dates",
+    relationshipIntentions: ["casual-dating", "open-to-connection"],
     preferredDateCategories: ["active", "food-and-drink", "culture-and-nightlife"],
+    competitiveness: 5,
+    creativity: 2,
     closenessComfortLevel: "high",
     instagramHandle: "@ethanafterhours",
     location: "Los Angeles, CA",
     intention: "Casual dates",
     interests: ["mixology", "arcades", "pickup soccer"],
     traits: ["bold", "spontaneous"],
+    personalityTraits: ["bold", "spontaneous"],
     energy: "Fast-start extrovert",
+    socialEnergy: "high",
     availability: "Friday after 9 PM",
+    availabilitySlots: ["Friday Evening", "Saturday Evening"],
     colorA: "#914e53",
     goals: "Interested in playful dates and seeing where the night goes.",
     lifestyle: "Works evenings, likes louder venues, and tends to lead quickly.",
@@ -249,6 +309,240 @@ const applicants = [
       "I can make a plan out of almost nothing.",
       "I like people who flirt back.",
       "My friends call me when the night needs momentum.",
+    ],
+  },
+  {
+    id: "theo",
+    name: "Theo",
+    photo: "assets/characters/theo.jpg",
+    image: "assets/characters/theo.jpg",
+    photoPosition: "50% 42%",
+    university: "Occidental College",
+    major: "Media Arts and Culture",
+    age: 20,
+    occupation: "Media Arts and Culture student",
+    occupationOrStudy: "Media Arts and Culture student",
+    school: "Occidental College",
+    gender: "man",
+    interestedIn: ["woman", "nonbinary"],
+    relationshipIntention: "Friendship first, open to a relationship",
+    relationshipIntentions: ["friendship-first", "long-term"],
+    preferredDateCategories: ["creative", "outdoors", "culture-and-nightlife"],
+    competitiveness: 2,
+    creativity: 5,
+    closenessComfortLevel: "low",
+    instagramHandle: "@theo.onfilm",
+    location: "Los Angeles, CA",
+    intention: "Friendship first, open to a relationship",
+    interests: ["street photography", "bookstores", "picnics"],
+    traits: ["gentle", "perceptive"],
+    personalityTraits: ["gentle", "perceptive"],
+    energy: "Reserved until there is something real to talk about",
+    socialEnergy: "low",
+    availability: "Saturday and Sunday afternoons",
+    availabilitySlots: ["Saturday Afternoon", "Sunday Afternoon"],
+    colorA: "#397b72",
+    goals: "Hopes a thoughtful friendship can turn into something lasting.",
+    lifestyle: "Shoots photos around Northeast LA and plans weekends around galleries and long walks.",
+    prompts: [
+      "I always notice the light in a room first.",
+      "A quiet bookstore can be a very good date.",
+      "I become competitive only when cameras are involved.",
+    ],
+  },
+  {
+    id: "marcus",
+    name: "Marcus",
+    photo: "assets/characters/marcus.jpg",
+    image: "assets/characters/marcus.jpg",
+    photoPosition: "50% 23%",
+    university: "Santa Monica College",
+    major: "Kinesiology",
+    age: 23,
+    occupation: "Kinesiology student and recreation aide",
+    occupationOrStudy: "Kinesiology student and recreation aide",
+    school: "Santa Monica College",
+    gender: "man",
+    interestedIn: ["woman", "nonbinary"],
+    relationshipIntention: "Casual dating, open to more",
+    relationshipIntentions: ["casual-dating", "open-to-connection"],
+    preferredDateCategories: ["active", "food-and-drink", "culture-and-nightlife"],
+    competitiveness: 4,
+    creativity: 2,
+    closenessComfortLevel: "high",
+    instagramHandle: "@marcusmovesla",
+    location: "Los Angeles, CA",
+    intention: "Casual dating, open to more",
+    interests: ["live music", "arcades", "night markets"],
+    traits: ["confident", "easygoing"],
+    personalityTraits: ["confident", "easygoing"],
+    energy: "Quick to laugh and comfortable starting the conversation",
+    socialEnergy: "high",
+    availability: "Friday and Saturday evenings",
+    availabilitySlots: ["Friday Evening", "Saturday Evening"],
+    colorA: "#7f5a45",
+    goals: "Wants chemistry without pressure and enough consistency to see where it goes.",
+    lifestyle: "Works at a rec center, plays pickup basketball, and rarely turns down live music.",
+    prompts: [
+      "I take games seriously for exactly ten minutes.",
+      "The best plans include music and food after.",
+      "I am good at making a quiet table loosen up.",
+    ],
+  },
+  {
+    id: "nia",
+    name: "Nia",
+    photo: "assets/characters/nia.jpg",
+    image: "assets/characters/nia.jpg",
+    photoPosition: "50% 22%",
+    university: "USC",
+    major: "Urban Planning",
+    age: 22,
+    occupation: "Urban Planning student",
+    occupationOrStudy: "Urban Planning student",
+    school: "USC",
+    gender: "woman",
+    interestedIn: ["man", "nonbinary"],
+    relationshipIntention: "Open to a relationship if it develops naturally",
+    relationshipIntentions: ["open-to-connection", "long-term"],
+    preferredDateCategories: ["food-and-drink", "culture-and-nightlife", "outdoors"],
+    competitiveness: 3,
+    creativity: 4,
+    closenessComfortLevel: "medium",
+    instagramHandle: "@niasideroutes",
+    location: "Los Angeles, CA",
+    intention: "Open to a relationship if it develops naturally",
+    interests: ["night markets", "live music", "cookouts"],
+    traits: ["bright", "grounded"],
+    personalityTraits: ["bright", "grounded"],
+    energy: "Warm group energy with an observant streak",
+    socialEnergy: "high",
+    availability: "Friday and Saturday evenings",
+    availabilitySlots: ["Friday Evening", "Saturday Evening"],
+    colorA: "#3d6f64",
+    goals: "Looking for someone curious about the city and steady after the first spark.",
+    lifestyle: "Maps neighborhood projects by day and spends weekends finding food stalls and small shows.",
+    prompts: [
+      "I can turn a walk into a neighborhood tour.",
+      "I remember what everyone ordered.",
+      "A shared plate is a compatibility test.",
+    ],
+  },
+  {
+    id: "sora",
+    name: "Sora",
+    photo: "assets/characters/sora.jpg",
+    image: "assets/characters/sora.jpg",
+    photoPosition: "50% 24%",
+    university: "Pasadena City College",
+    major: "Illustration",
+    age: 21,
+    occupation: "Illustration student",
+    occupationOrStudy: "Illustration student",
+    school: "Pasadena City College",
+    gender: "woman",
+    interestedIn: ["man", "nonbinary"],
+    relationshipIntention: "Friendship first, looking for something real",
+    relationshipIntentions: ["friendship-first", "long-term"],
+    preferredDateCategories: ["creative", "outdoors", "culture-and-nightlife"],
+    competitiveness: 1,
+    creativity: 5,
+    closenessComfortLevel: "low",
+    instagramHandle: "@sorasketchbook",
+    location: "Los Angeles, CA",
+    intention: "Friendship first, looking for something real",
+    interests: ["bookstores", "ceramics", "picnics"],
+    traits: ["imaginative", "patient"],
+    personalityTraits: ["imaginative", "patient"],
+    energy: "Quietly playful in smaller groups",
+    socialEnergy: "low",
+    availability: "Saturday and Sunday afternoons",
+    availabilitySlots: ["Saturday Afternoon", "Sunday Afternoon"],
+    colorA: "#446f88",
+    goals: "Wants a slow-building connection with someone comfortable around quiet moments.",
+    lifestyle: "Draws between classes, visits ceramics studios, and keeps Sunday afternoons open.",
+    prompts: [
+      "I sketch people when they are not trying to pose.",
+      "My perfect afternoon has shade, snacks, and no rush.",
+      "I am much funnier after the second question.",
+    ],
+  },
+  {
+    id: "leila",
+    name: "Leila",
+    photo: "assets/characters/leila.jpg",
+    image: "assets/characters/leila.jpg",
+    photoPosition: "50% 26%",
+    university: "Loyola Marymount University",
+    major: "Business Analytics",
+    age: 24,
+    occupation: "Business Analytics graduate and venue coordinator",
+    occupationOrStudy: "Business Analytics graduate and venue coordinator",
+    school: "Loyola Marymount University",
+    gender: "woman",
+    interestedIn: ["man", "nonbinary"],
+    relationshipIntention: "Casual dating, open to a relationship",
+    relationshipIntentions: ["casual-dating", "open-to-connection"],
+    preferredDateCategories: ["active", "food-and-drink", "culture-and-nightlife"],
+    competitiveness: 4,
+    creativity: 3,
+    closenessComfortLevel: "high",
+    instagramHandle: "@leilaafterfive",
+    location: "Los Angeles, CA",
+    intention: "Casual dating, open to a relationship",
+    interests: ["arcades", "farmers markets", "live music"],
+    traits: ["upbeat", "decisive"],
+    personalityTraits: ["upbeat", "decisive"],
+    energy: "Social and direct without needing to run the room",
+    socialEnergy: "high",
+    availability: "Friday and Saturday evenings",
+    availabilitySlots: ["Friday Evening", "Saturday Evening"],
+    colorA: "#8b5564",
+    goals: "Interested in an easy first connection that can earn its way into something serious.",
+    lifestyle: "Coordinates small events, loves a friendly challenge, and knows the late-night food options.",
+    prompts: [
+      "I will suggest the second location.",
+      "Friendly competition is still competition.",
+      "Good logistics are an underrated love language.",
+    ],
+  },
+  {
+    id: "avery",
+    name: "Avery",
+    photo: "assets/characters/avery.jpg",
+    image: "assets/characters/avery.jpg",
+    photoPosition: "50% 20%",
+    university: "Cal State LA",
+    major: "Studio Arts",
+    age: 22,
+    occupation: "Studio Arts student and gallery assistant",
+    occupationOrStudy: "Studio Arts student and gallery assistant",
+    school: "Cal State LA",
+    gender: "nonbinary",
+    interestedIn: ["man", "woman", "nonbinary"],
+    relationshipIntention: "Friendship first, open to connection",
+    relationshipIntentions: ["friendship-first", "open-to-connection", "long-term"],
+    preferredDateCategories: ["creative", "outdoors", "culture-and-nightlife"],
+    competitiveness: 2,
+    creativity: 5,
+    closenessComfortLevel: "medium",
+    instagramHandle: "@averymakesroom",
+    location: "Los Angeles, CA",
+    intention: "Friendship first, open to connection",
+    interests: ["analog film", "student radio", "bookstores"],
+    traits: ["inventive", "attentive"],
+    personalityTraits: ["inventive", "attentive"],
+    energy: "Adaptable energy and good at drawing quieter people in",
+    socialEnergy: "medium",
+    availability: "Friday evenings and weekend afternoons",
+    availabilitySlots: ["Friday Evening", "Saturday Afternoon", "Sunday Afternoon"],
+    colorA: "#796481",
+    goals: "Looking for curiosity, emotional range, and room for a friendship to become more.",
+    lifestyle: "Splits time between the studio, a campus gallery, and a late-night radio slot.",
+    prompts: [
+      "I like people who make unusual connections.",
+      "A gallery bench can be a very good conversation.",
+      "I will notice the song choice.",
     ],
   },
 ];
@@ -267,6 +561,195 @@ const romanticEligibilityPairs = [
   ["lucas", "olivia"],
   ["lucas", "kayla"],
 ];
+
+function sharedProfileValues(profiles, field) {
+  if (profiles.length === 0) return [];
+  return profiles[0][field].filter((value) => profiles.every((profile) => profile[field].includes(value)));
+}
+
+function highlightedProfileValues(profiles, field) {
+  const membersByValue = new Map();
+  profiles.forEach((profile) => {
+    profile[field].forEach((value) => {
+      if (!membersByValue.has(value)) membersByValue.set(value, []);
+      membersByValue.get(value).push(profile.name);
+    });
+  });
+  return [...membersByValue.entries()]
+    .filter(([, members]) => members.length >= 2)
+    .sort((left, right) => right[1].length - left[1].length || left[0].localeCompare(right[0]))
+    .map(([value, members]) => ({ value, members }));
+}
+
+function relationshipIntentionsAlign(first, second) {
+  return first.relationshipIntentions.some((intention) => second.relationshipIntentions.includes(intention));
+}
+
+function isFuturePairEligible(first, second) {
+  return (
+    first.id !== second.id
+    && first.interestedIn.includes(second.gender)
+    && second.interestedIn.includes(first.gender)
+    && Math.abs(first.age - second.age) <= 5
+    && relationshipIntentionsAlign(first, second)
+  );
+}
+
+function futurePairingConfigurations(group) {
+  if (group.length !== 4) return [];
+  const pairingIndexes = [
+    [[0, 1], [2, 3]],
+    [[0, 2], [1, 3]],
+    [[0, 3], [1, 2]],
+  ];
+  return pairingIndexes
+    .map((configuration) => configuration.map(([firstIndex, secondIndex]) => [
+      group[firstIndex],
+      group[secondIndex],
+    ]))
+    .filter((configuration) => configuration.every(([first, second]) => isFuturePairEligible(first, second)));
+}
+
+function candidateGroupsFor(selectedUserId, pool = applicants) {
+  const selectedUser = pool.find((profile) => profile.id === selectedUserId);
+  if (!selectedUser) return [];
+  const others = pool.filter((profile) => profile.id !== selectedUserId);
+  const groups = [];
+  for (let first = 0; first < others.length - 2; first += 1) {
+    for (let second = first + 1; second < others.length - 1; second += 1) {
+      for (let third = second + 1; third < others.length; third += 1) {
+        groups.push([selectedUser, others[first], others[second], others[third]]);
+      }
+    }
+  }
+  return groups;
+}
+
+function socialEnergyExplanation(group) {
+  const levels = group.map((profile) => profile.socialEnergy);
+  const counts = levels.reduce((result, level) => ({
+    ...result,
+    [level]: (result[level] || 0) + 1,
+  }), {});
+  const description = counts.high && counts.low
+    ? "Higher-energy starters are balanced by quieter anchors."
+    : counts.high
+      ? "The group shares an outgoing pace without relying on one person to carry it."
+      : counts.low
+        ? "The group is comfortable with a calmer pace and smaller conversations."
+        : "The group shares a flexible, middle-energy social pace.";
+  return { levels: [...new Set(levels)].sort(), description };
+}
+
+function explainCandidateGroup(group, configurations) {
+  const relationshipAlignments = new Set();
+  configurations.forEach((configuration) => {
+    configuration.forEach((pair) => {
+      const [first, second] = pair;
+      first.relationshipIntentions
+        .filter((intention) => second.relationshipIntentions.includes(intention))
+        .forEach((intention) => relationshipAlignments.add(intention));
+    });
+  });
+  return {
+    strongestSharedInterests: highlightedProfileValues(group, "interests"),
+    compatibleDatePreferences: highlightedProfileValues(group, "preferredDateCategories"),
+    socialEnergyFit: socialEnergyExplanation(group),
+    complementaryPersonalityTraits: group.map((profile) => ({
+      participantId: profile.id,
+      traits: [...profile.personalityTraits],
+    })),
+    relationshipIntentionAlignment: [...relationshipAlignments].sort(),
+    sharedAvailability: sharedProfileValues(group, "availabilitySlots"),
+    validRomanticPairingConfigurations: {
+      count: configurations.length,
+      configurations: configurations.map((configuration) => (
+        configuration.map(([first, second]) => [first.id, second.id])
+      )),
+    },
+  };
+}
+
+function scoreCandidateGroup(group, configurations) {
+  const sharedInterests = highlightedProfileValues(group, "interests");
+  const datePreferences = highlightedProfileValues(group, "preferredDateCategories");
+  const energyValues = { low: 1, medium: 2, high: 3 };
+  const energyScores = group.map((profile) => energyValues[profile.socialEnergy]);
+  const creativityScores = group.map((profile) => profile.creativity);
+  const competitivenessScores = group.map((profile) => profile.competitiveness);
+  const sharedInterestScore = sharedInterests.reduce((sum, item) => sum + item.members.length - 1, 0) * 4;
+  const datePreferenceScore = datePreferences.reduce((sum, item) => sum + item.members.length - 1, 0) * 3;
+  const socialEnergyScore = 6 - (Math.max(...energyScores) - Math.min(...energyScores));
+  const creativityBalanceScore = 6 - Math.abs(3.5 - creativityScores.reduce((sum, value) => sum + value, 0) / group.length);
+  const competitivenessBalanceScore = 6 - Math.abs(3 - competitivenessScores.reduce((sum, value) => sum + value, 0) / group.length);
+  const similarityScore = sharedInterests.length + datePreferences.length;
+  const curiosityScore = (
+    new Set(group.flatMap((profile) => profile.personalityTraits)).size
+    + Math.max(...creativityScores) - Math.min(...creativityScores)
+    + Math.max(...competitivenessScores) - Math.min(...competitivenessScores)
+  );
+  const scoreBreakdown = {
+    sharedInterests: sharedInterestScore,
+    datePreferences: datePreferenceScore,
+    socialEnergyFit: socialEnergyScore,
+    creativityBalance: creativityBalanceScore,
+    competitivenessBalance: competitivenessBalanceScore,
+    similarity: similarityScore,
+    curiosity: curiosityScore,
+    romanticOptions: configurations.length * 8,
+  };
+  return {
+    score: Object.values(scoreBreakdown).reduce((sum, value) => sum + value, 0),
+    scoreBreakdown,
+  };
+}
+
+function formDeterministicGroup(selectedUserId, pool = applicants) {
+  const eligibleGroups = candidateGroupsFor(selectedUserId, pool)
+    .map((group) => {
+      const sharedAvailability = sharedProfileValues(group, "availabilitySlots");
+      const configurations = futurePairingConfigurations(group);
+      if (sharedAvailability.length === 0 || configurations.length < 2) return undefined;
+      const scoring = scoreCandidateGroup(group, configurations);
+      return {
+        group,
+        configurations,
+        ...scoring,
+      };
+    })
+    .filter(Boolean)
+    .sort((left, right) => (
+      right.score - left.score
+      || left.group.map((profile) => profile.id).sort().join(":")
+        .localeCompare(right.group.map((profile) => profile.id).sort().join(":"))
+    ));
+  const selected = eligibleGroups[0];
+  if (!selected) return undefined;
+  return {
+    selectedUserId,
+    memberIds: selected.group.map((profile) => profile.id),
+    members: selected.group.map((profile) => ({ id: profile.id, name: profile.name })),
+    score: selected.score,
+    scoreBreakdown: selected.scoreBreakdown,
+    explanation: explainCandidateGroup(selected.group, selected.configurations),
+  };
+}
+
+const founderGroupFormationExamples = ["jacob", "maya", "marcus"]
+  .map((participantId) => formDeterministicGroup(participantId))
+  .filter(Boolean);
+
+window.dittoGroupFormation = Object.freeze({
+  profileCount: applicants.length,
+  approvedDockweilerFixtureIds: [...selectedIds],
+  examples: founderGroupFormationExamples,
+  formGroupForApplicant: formDeterministicGroup,
+  isPairEligible: (firstId, secondId) => {
+    const first = applicants.find((profile) => profile.id === firstId);
+    const second = applicants.find((profile) => profile.id === secondId);
+    return Boolean(first && second && isFuturePairEligible(first, second));
+  },
+});
 
 const postcardSubmissions = {
   jacob: "assets/postcards/postcard-04.png",
@@ -373,6 +856,12 @@ const formationPositions = {
   lucas: { x: 76, y: 72 },
   maya: { x: 45, y: 48 },
   ethan: { x: 92, y: 49 },
+  theo: { x: 8, y: 48 },
+  marcus: { x: 91, y: 18 },
+  nia: { x: 7, y: 18 },
+  sora: { x: 35, y: 82 },
+  leila: { x: 91, y: 82 },
+  avery: { x: 54, y: 12 },
 };
 
 const formationFinalPositions = {
@@ -490,7 +979,7 @@ function renderLanding() {
                 <p class="pass-kicker">This week</p>
                 <h2>Meet the room.</h2>
               </div>
-              <div class="avatar-strip" aria-label="Six applicants">
+              <div class="avatar-strip" aria-label="Twelve applicants">
                 ${applicants.map((person) => portrait(person, "pass-avatar", person.name)).join("")}
               </div>
             </div>
@@ -514,19 +1003,19 @@ function renderApplications() {
             <p class="nav-kicker">Ditto Studio</p>
             <h2>Applications</h2>
           </div>
-          <span class="nav-count">6 Applicants</span>
+          <span class="nav-count">${applicants.length} Applicants</span>
         </nav>
 
         <div class="studio-heading">
           <h1>Applications</h1>
-          <p>6 applications ready</p>
+          <p>${applicants.length} applications ready</p>
         </div>
 
         <div class="application-deck">
           ${applicants.map((person, index) => `
             <button class="application-pass" data-applicant="${person.id}" style="--pass-index:${index};--delay:${index * 70}ms;--accent:${person.colorA}">
               ${portrait(person, "application-photo")}
-              <span class="application-number">0${index + 1}</span>
+              <span class="application-number">${String(index + 1).padStart(2, "0")}</span>
               <span class="application-pass-copy"><strong>${person.name}</strong><small>${person.major}</small></span>
               <span class="pass-open" aria-hidden="true">&nearr;</span>
             </button>
