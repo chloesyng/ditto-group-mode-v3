@@ -330,6 +330,38 @@ img { display: block; }
 .anonymous-postcard.is-selected { border-color: var(--pink); box-shadow: 0 8px 18px rgba(255,60,162,0.16); }
 .anonymous-postcard span { display: block; padding: 8px 9px; font-size: 0.66rem; }
 
+/* Café relationship booklet */
+.relationship-booklet-form { display: grid; gap: 14px; }
+.relationship-booklet-form section { display: grid; gap: 7px; padding-bottom: 13px; border-bottom: 1px solid rgba(255,255,255,0.18); }
+.relationship-booklet-form section > p { margin: 0; color: rgba(250,253,255,0.92); font-size: 0.7rem; line-height: 1.4; }
+.relationship-booklet-answer { width: 100%; min-height: 66px; resize: vertical; padding: 10px 11px; border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; color: white; background: rgba(4,25,40,0.34); font: inherit; font-size: 0.72rem; line-height: 1.42; outline: none; }
+.relationship-booklet-answer::placeholder { color: rgba(242,249,252,0.5); }
+.relationship-booklet-answer:focus { border-color: rgba(255,255,255,0.66); box-shadow: 0 0 0 3px rgba(255,255,255,0.08); }
+.relationship-booklet-library { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.relationship-booklet-library[hidden], .relationship-booklet-reader[hidden], .relationship-booklet-choices[hidden] { display: none; }
+.relationship-booklet-cover { position: relative; min-width: 0; aspect-ratio: 3 / 4; display: grid; align-content: space-between; overflow: hidden; padding: 17px 12px 13px 19px; border: 1px solid rgba(255,255,255,0.42); border-radius: 7px; color: white; text-align: left; box-shadow: 0 9px 18px rgba(3,18,28,0.18); transition: transform 160ms ease, box-shadow 160ms ease; }
+.relationship-booklet-cover:hover { transform: translateY(-2px) rotate(-0.5deg); box-shadow: 0 12px 22px rgba(3,18,28,0.24); }
+.relationship-booklet-cover.cover-a { background: #c86582; }
+.relationship-booklet-cover.cover-b { background: #6f947e; }
+.relationship-booklet-binding { position: absolute; inset: 0 auto 0 7px; width: 2px; background: rgba(255,255,255,0.36); }
+.relationship-booklet-cover small { align-self: start; font-size: 0.54rem; font-weight: 700; text-transform: uppercase; }
+.relationship-booklet-cover strong { font-family: Georgia, serif; font-size: 1.08rem; font-weight: 500; line-height: 1.05; }
+.relationship-booklet-cover em { font-size: 0.58rem; font-style: normal; opacity: 0.78; }
+.relationship-booklet-reader { min-height: 318px; }
+.relationship-booklet-page { --booklet-accent: #c86582; min-height: 318px; display: flex; flex-direction: column; padding: 17px; border: 1px solid rgba(255,255,255,0.56); border-top: 7px solid var(--booklet-accent); border-radius: 7px; color: #24313a; background: #f8f7f3; box-shadow: 0 12px 23px rgba(3,18,28,0.2); }
+.relationship-booklet-page.cover-b { --booklet-accent: #6f947e; }
+.relationship-booklet-page-meta { display: flex; justify-content: space-between; color: #72777a; font-size: 0.56rem; font-weight: 700; text-transform: uppercase; }
+.relationship-booklet-page > p { margin: 32px 0 16px; font-family: Georgia, serif; font-size: 0.92rem; line-height: 1.34; }
+.relationship-booklet-page blockquote { flex: 1; margin: 0; color: #4a5257; font-size: 0.76rem; line-height: 1.52; }
+.relationship-booklet-page-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 18px; }
+.relationship-booklet-page-controls .inline-secondary { color: #4f5b63; border-color: #cfd4d5; background: #eef0ed; }
+.relationship-booklet-page-controls .inline-secondary:disabled { color: #a4aaad; opacity: 1; }
+.relationship-booklet-back { align-self: center; margin-top: 10px; padding: 4px; color: #6d7478; background: transparent; font-size: 0.61rem; }
+.relationship-booklet-choices { display: grid; gap: 10px; margin-top: 12px; }
+.relationship-booklet-choices > p { margin: 0; color: rgba(247,251,253,0.78); font-size: 0.7rem; line-height: 1.35; }
+.relationship-booklet-choice { min-height: 40px; padding: 9px 11px; border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; color: rgba(250,253,255,0.9); background: rgba(4,25,40,0.34); text-align: left; font-size: 0.7rem; }
+.relationship-booklet-choice.is-selected { border-color: rgba(255,137,200,0.84); background: rgba(255,255,255,0.14); }
+
 /* Participant Mode: reminder and live boundary */
 .compact-reminder-card { width: 100%; display: grid; grid-template-columns: 92px 1fr; gap: 11px; padding: 8px; border: 1px solid rgba(0,0,0,0.07); border-radius: 17px; color: #27272b; background: #f4f4f7; }
 .compact-reminder-card img { width: 92px; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 12px; }
