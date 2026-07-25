@@ -208,6 +208,7 @@ const applicants = [
     interestedIn: ["man", "nonbinary"],
     relationshipIntention: "Casual dates, open to more",
     relationshipIntentions: ["casual_dating", "serious_relationship"],
+    scenarioPreferences: ["indoor_exploring_active"],
     preferredDateCategories: ["active", "food-and-drink", "culture-and-nightlife"],
     competitiveness: 5,
     creativity: 3,
@@ -326,6 +327,7 @@ const applicants = [
     interestedIn: ["woman", "nonbinary"],
     relationshipIntention: "Casual dates",
     relationshipIntentions: ["casual_dating"],
+    scenarioPreferences: ["indoor_exploring_active"],
     preferredDateCategories: ["active", "food-and-drink", "culture-and-nightlife"],
     competitiveness: 5,
     creativity: 2,
@@ -404,6 +406,7 @@ const applicants = [
     interestedIn: ["woman", "nonbinary"],
     relationshipIntention: "Casual dating, open to more",
     relationshipIntentions: ["casual_dating"],
+    scenarioPreferences: ["indoor_exploring_active"],
     preferredDateCategories: ["active", "food-and-drink", "culture-and-nightlife"],
     competitiveness: 4,
     creativity: 2,
@@ -522,6 +525,7 @@ const applicants = [
     interestedIn: ["man", "nonbinary"],
     relationshipIntention: "Casual dating, open to a relationship",
     relationshipIntentions: ["casual_dating"],
+    scenarioPreferences: ["indoor_exploring_active"],
     preferredDateCategories: ["active", "food-and-drink", "culture-and-nightlife"],
     competitiveness: 4,
     creativity: 3,
@@ -682,6 +686,7 @@ const groupPhotos = {
   beachCookout: "assets/groups/group-2.jpg",
   cafeDessert: "assets/groups/cafe-dessert.jpg",
   pastaWorkshop: "assets/groups/workshop-pasta.png",
+  arcadeNight: "assets/groups/eastwood-arcade.jpg",
 };
 
 const approvedDockweilerIds = ["jacob", "olivia", "kayla", "lucas"];
@@ -1110,14 +1115,92 @@ function formDeterministicWorkshopGroup(pool = applicants) {
   };
 }
 
+function formDeterministicArcadeGroup(pool = applicants) {
+  const arcadeInterestTerms = new Set(["arcades", "strategy games", "pickup soccer", "volleyball"]);
+  const eligibleGroups = allFourPersonGroups(pool)
+    .map((group) => {
+      const configurations = futurePairingConfigurations(group);
+      const eligibleMatchCounts = group.map((profile) => (
+        group.filter((candidate) => isFuturePairEligible(profile, candidate)).length
+      ));
+      const sharedAvailability = rollingSharedAvailabilityForGroup(group);
+      const sharedRelationshipIntention = selectSharedRelationshipIntention(group);
+      const activityFit = group.reduce((score, profile) => (
+        score
+        + (profile.preferredDateCategories.includes("active") ? 4 : 0)
+        + profile.interests.filter((interest) => arcadeInterestTerms.has(interest)).length * 3
+        + profile.competitiveness
+        + (profile.socialEnergy === "high" ? 2 : profile.socialEnergy === "medium" ? 1 : 0)
+      ), 0);
+      const valid = (
+        group.every((profile) => profile.scenarioPreferences?.includes("indoor_exploring_active"))
+        && Boolean(sharedRelationshipIntention)
+        && sharedAvailability.length > 0
+        && eligibleMatchCounts.every((count) => count === 2)
+        && configurations.length >= 2
+        && group.every(supportsLightCloseness)
+      );
+      if (!valid) return undefined;
+      return {
+        group,
+        configurations,
+        sharedRelationshipIntention,
+        sharedAvailability,
+        activityFit,
+        ...scoreCandidateGroup(group, configurations),
+      };
+    })
+    .filter(Boolean)
+    .sort((left, right) => (
+      right.activityFit - left.activityFit
+      || right.score - left.score
+      || left.group.map((profile) => profile.id).join(":")
+        .localeCompare(right.group.map((profile) => profile.id).join(":"))
+    ));
+  const selected = eligibleGroups[0];
+  if (!selected) return undefined;
+  return {
+    memberIds: selected.group.map((profile) => profile.id),
+    members: selected.group,
+    configurations: selected.configurations.map((configuration) => (
+      configuration.map((pair) => pair.map((profile) => profile.id))
+    )),
+    score: selected.score,
+    activityFit: selected.activityFit,
+    sharedRelationshipIntention: selected.sharedRelationshipIntention,
+    sharedAvailability: selected.sharedAvailability,
+    explanation: {
+      ...explainCandidateGroup(selected.group, selected.configurations),
+      scenarioPreference: "indoor_exploring_active",
+      activityFit: selected.group.map((profile) => ({
+        participantId: profile.id,
+        activePreference: profile.preferredDateCategories.includes("active"),
+        arcadeInterests: profile.interests.filter((interest) => arcadeInterestTerms.has(interest)),
+        competitiveness: profile.competitiveness,
+        socialEnergy: profile.socialEnergy,
+      })),
+      closenessFit: selected.group.map((profile) => ({
+        participantId: profile.id,
+        closenessComfortLevel: profile.closenessComfortLevel,
+      })),
+    },
+  };
+}
+
 const requestedScenarioId = new URLSearchParams(window.location?.search || "").get("scenario");
 const cafeGroupFormation = formDeterministicCafeGroup();
 const workshopGroupFormation = formDeterministicWorkshopGroup();
+const arcadeGroupFormation = formDeterministicArcadeGroup();
 const isCafeScenario = requestedScenarioId === "cafe" && Boolean(cafeGroupFormation);
 const isWorkshopScenario = requestedScenarioId === "workshop" && Boolean(workshopGroupFormation);
+const isArcadeScenario = requestedScenarioId === "arcade" && Boolean(arcadeGroupFormation);
 
-if (isCafeScenario || isWorkshopScenario) {
-  const scenarioGroupFormation = isWorkshopScenario ? workshopGroupFormation : cafeGroupFormation;
+if (isCafeScenario || isWorkshopScenario || isArcadeScenario) {
+  const scenarioGroupFormation = isWorkshopScenario
+    ? workshopGroupFormation
+    : isArcadeScenario
+      ? arcadeGroupFormation
+      : cafeGroupFormation;
   selectedIds = [...scenarioGroupFormation.memberIds];
   selectedGroup = applicants.filter((person) => selectedIds.includes(person.id));
   romanticEligibilityPairs = [];
@@ -1141,6 +1224,7 @@ window.dittoGroupFormation = Object.freeze({
   approvedDockweilerFixtureIds: [...approvedDockweilerIds],
   cafeScenario: cafeGroupFormation,
   workshopScenario: workshopGroupFormation,
+  arcadeScenario: arcadeGroupFormation,
   examples: founderGroupFormationExamples,
   formGroupForApplicant: formDeterministicGroup,
   isPairEligible: (firstId, secondId) => {
@@ -1155,6 +1239,9 @@ const postcardSubmissions = {
   olivia: "assets/postcards/postcard-01.png",
   kayla: "assets/postcards/postcard-02.png",
   lucas: "assets/postcards/postcard-03.png",
+  ethan: "assets/postcards/postcard-01.png",
+  marcus: "assets/postcards/postcard-03.png",
+  leila: "assets/postcards/postcard-04.png",
 };
 
 const canonicalDemoPhotoSelections = {
@@ -1194,10 +1281,10 @@ const beachDateFlow = {
   },
   phases: [
     { id: "arrival", durationMinutes: 10, type: "intro", inputType: "none", shared: true },
-    { id: "linked-dodgeball", durationMinutes: 30, type: "physical_task", inputType: "completion", completionLabel: "Game finished", shared: true },
-    { id: "couple-photo", durationMinutes: 8, type: "competitive_task", inputType: "completion", completionLabel: "Photos taken", shared: true },
-    { id: "cookout-setup", durationMinutes: 20, type: "preparation_task", inputType: "completion", completionLabel: "We're ready to grill", dependsOn: "couple-photo", shared: true, blindfoldRequired: true, blindfoldScope: "ingredient prep" },
-    { id: "arm-wrestling", durationMinutes: 5, type: "competitive_task", inputType: "completion", completionLabel: "Match finished", dependsOn: "cookout-setup", shared: true },
+    { id: "linked-dodgeball", durationMinutes: 30, type: "physical_task", inputType: "completion", completionLabel: "Finished", shared: true },
+    { id: "couple-photo", durationMinutes: 8, type: "competitive_task", inputType: "completion", completionLabel: "Finished", shared: true },
+    { id: "cookout-setup", durationMinutes: 20, type: "preparation_task", inputType: "completion", completionLabel: "Finished", dependsOn: "couple-photo", shared: true, blindfoldRequired: true, blindfoldScope: "ingredient prep" },
+    { id: "arm-wrestling", durationMinutes: 5, type: "competitive_task", inputType: "completion", completionLabel: "Finished", dependsOn: "cookout-setup", shared: true },
     { id: "grilling-dinner", durationMinutes: 47, type: "free_time", inputType: "none", dependsOn: "arm-wrestling", shared: true },
     { id: "private-window", durationMinutes: 10, type: "private_window", inputType: "name", waitForAllParticipants: true, shared: false },
     { id: "final-signal", durationMinutes: 0, delayBeforeMinutes: 15, type: "final_signal", inputType: "name", waitForAllParticipants: true, locksAfterSubmit: true, shared: false },
@@ -1254,12 +1341,12 @@ const cafeDateFlow = {
   },
   phases: [
     { id: "arrival", durationMinutes: 10, type: "intro", inputType: "none", shared: true },
-    { id: "couple-photo", durationMinutes: 8, type: "creative_task", inputType: "completion", completionLabel: "Photos taken", shared: true },
+    { id: "couple-photo", durationMinutes: 8, type: "creative_task", inputType: "completion", completionLabel: "Finished", shared: true },
     { id: "first-impression", durationMinutes: 2, type: "private_choice", inputType: "name", waitForAllParticipants: true, shared: false },
-    { id: "eye-contact", durationMinutes: 1, type: "low_contact", inputType: "completion", completionLabel: "10 seconds finished", shared: true },
+    { id: "eye-contact", durationMinutes: 1, type: "low_contact", inputType: "completion", completionLabel: "Finished", shared: true },
     { id: "cafe-free-time", durationMinutes: 29, type: "free_time", inputType: "none", shared: true },
     { id: "private-window", durationMinutes: 10, type: "private_window", inputType: "name", waitForAllParticipants: true, shared: false },
-    { id: "stay-linked", durationMinutes: 15, type: "light_closeness", inputType: "completion", completionLabel: "15 minutes finished", shared: true, removableProp: true },
+    { id: "stay-linked", durationMinutes: 15, type: "light_closeness", inputType: "completion", completionLabel: "Finished", shared: true, removableProp: true },
     { id: "final-signal", durationMinutes: 0, delayBeforeMinutes: 15, type: "final_signal", inputType: "name", waitForAllParticipants: true, locksAfterSubmit: true, shared: false },
     { id: "waiting", durationMinutes: 0, type: "waiting", inputType: "none", shared: false },
     { id: "midnight-reveal", durationMinutes: 0, type: "midnight_reveal", inputType: "none", shared: false },
@@ -1312,13 +1399,13 @@ const workshopDateFlow = {
   },
   phases: [
     { id: "arrival", durationMinutes: 10, type: "intro", inputType: "none", shared: true },
-    { id: "workshop-role-pick", durationMinutes: 5, type: "low_contact", inputType: "completion", completionLabel: "Role pick finished", shared: true },
+    { id: "workshop-role-pick", durationMinutes: 5, type: "low_contact", inputType: "completion", completionLabel: "Finished", shared: true },
     { id: "workshop-cooking", durationMinutes: 28, type: "structured_workshop", inputType: "none", shared: true },
     { id: "first-impression", durationMinutes: 2, type: "private_choice", inputType: "name", waitForAllParticipants: true, shared: false },
-    { id: "sensory-kitchen", durationMinutes: 18, type: "low_contact", inputType: "completion", completionLabel: "Challenge finished", shared: true },
+    { id: "sensory-kitchen", durationMinutes: 18, type: "low_contact", inputType: "completion", completionLabel: "Finished", shared: true },
     { id: "workshop-free-time", durationMinutes: 20, type: "free_time", inputType: "none", shared: true },
     { id: "private-window", durationMinutes: 10, type: "private_window", inputType: "name", waitForAllParticipants: true, shared: false },
-    { id: "stay-linked-dinner", durationMinutes: 15, type: "light_closeness", inputType: "completion", completionLabel: "15 minutes finished", shared: true, removableProp: true },
+    { id: "stay-linked-dinner", durationMinutes: 15, type: "light_closeness", inputType: "completion", completionLabel: "Finished", shared: true, removableProp: true },
     { id: "final-signal", durationMinutes: 0, delayBeforeMinutes: 18, type: "final_signal", inputType: "name", waitForAllParticipants: true, locksAfterSubmit: true, shared: false },
     { id: "waiting", durationMinutes: 0, type: "waiting", inputType: "none", shared: false },
     { id: "midnight-reveal", durationMinutes: 0, type: "midnight_reveal", inputType: "none", shared: false },
@@ -1337,11 +1424,91 @@ const workshopDateFlow = {
   },
 };
 
+const arcadeInitialPairing = arcadeGroupFormation?.configurations[0] || [];
+const arcadeSecondPairing = arcadeGroupFormation?.configurations[1] || [];
+const arcadeCanonicalPhotoSelections = Object.fromEntries(
+  arcadeInitialPairing.flatMap(([firstId, secondId]) => [
+    [firstId, secondId],
+    [secondId, firstId],
+  ]),
+);
+const arcadeCanonicalFirstImpressions = Object.fromEntries(
+  arcadeSecondPairing.flatMap(([firstId, secondId]) => [
+    [firstId, secondId],
+    [secondId, firstId],
+  ]),
+);
+const arcadeMemeReferences = [
+  {
+    id: "frame-1",
+    label: "Frame 1 reference",
+    image: "assets/meme-references/frame-1.jpg",
+  },
+  {
+    id: "frame-2",
+    label: "Frame 2 reference",
+    image: "assets/meme-references/frame-2.jpg",
+  },
+  {
+    id: "frame-3",
+    label: "Frame 3 reference",
+    image: "assets/meme-references/frame-3.jpg",
+  },
+  {
+    id: "frame-4",
+    label: "Frame 4 reference",
+    image: "assets/meme-references/frame-4.jpg",
+  },
+];
+
+const arcadeDateFlow = {
+  id: "eastwood-arcade-night",
+  category: "indoor_exploring_active",
+  title: "Arcade After Dark",
+  venue: "Eastwood · Koreatown",
+  venueName: "Eastwood",
+  neighborhood: "Koreatown",
+  city: "Los Angeles",
+  venueType: "arcade_bar",
+  supportedActivity: "arcade_games_and_photo_booth",
+  environment: "arcade",
+  durationLabel: "Approximately 2 Hours",
+  image: groupPhotos.arcadeNight,
+  lede: "split the controls, chase a high score, and finish with one ridiculous photo strip.",
+  detailSummary: "Play the arcade in changing pairs, then recreate a meme pose in the photo booth.",
+  preDateFormat: arcadeGroupFormation?.explanation.preDateFormat,
+  pairings: {
+    sharedController: arcadeInitialPairing,
+    freeArcade: arcadeSecondPairing,
+    photoBooth: arcadeSecondPairing,
+  },
+  naturalIntervals: {},
+  phases: [
+    { id: "arrival", durationMinutes: 10, type: "intro", inputType: "none", shared: true },
+    { id: "shared-controller", durationMinutes: 14, type: "low_contact", inputType: "completion", completionLabel: "Finished", shared: true },
+    { id: "first-impression", durationMinutes: 2, type: "private_choice", inputType: "name", waitForAllParticipants: true, shared: false },
+    { id: "arcade-free-time", durationMinutes: 18, type: "free_time", inputType: "none", shared: true },
+    { id: "private-window", durationMinutes: 10, type: "private_window", inputType: "name", waitForAllParticipants: true, shared: false },
+    { id: "photo-booth-meme", durationMinutes: 7, type: "low_contact", inputType: "completion", completionLabel: "Finished", shared: true },
+    { id: "arcade-wind-down", durationMinutes: 8, type: "free_time", inputType: "none", shared: true },
+    { id: "final-signal", durationMinutes: 0, delayBeforeMinutes: 0, type: "final_signal", inputType: "name", waitForAllParticipants: true, locksAfterSubmit: true, shared: false },
+    { id: "waiting", durationMinutes: 0, type: "waiting", inputType: "none", shared: false },
+    { id: "midnight-reveal", durationMinutes: 0, type: "midnight_reveal", inputType: "none", shared: false },
+  ],
+  simulatedResults: {
+    photoSelections: arcadeCanonicalPhotoSelections,
+    firstImpressions: arcadeCanonicalFirstImpressions,
+    privateWindowChoices: { kayla: "marcus", ethan: "leila", marcus: "kayla", leila: "ethan" },
+    finalSignals: { kayla: "marcus", ethan: "leila", marcus: "kayla", leila: "ethan" },
+  },
+};
+
 const LOS_ANGELES_AREA_CITIES = new Set(["Los Angeles"]);
 const SUPPORTED_ACTIVITIES_BY_CATEGORY = {
   nature: new Set(["beach_cookout"]),
   indoor_seated: new Set(["dessert_and_coffee"]),
   structured_workshop: new Set(["hands_on_pasta_class"]),
+  indoor_exploring_active: new Set(["arcade_games_and_photo_booth"]),
 };
 
 function validateDatePlanVenue(dateFlow) {
@@ -1358,15 +1525,17 @@ function validateDatePlanVenue(dateFlow) {
   return true;
 }
 
-[beachDateFlow, cafeDateFlow, workshopDateFlow].forEach(validateDatePlanVenue);
+[beachDateFlow, cafeDateFlow, workshopDateFlow, arcadeDateFlow].forEach(validateDatePlanVenue);
 
 const activeDateFlow = isWorkshopScenario
   ? workshopDateFlow
+  : isArcadeScenario
+    ? arcadeDateFlow
   : isCafeScenario
     ? cafeDateFlow
     : beachDateFlow;
 const usesRelationshipBooklet = activeDateFlow.preDateFormat === "relationship_booklet";
-const usesEligibilityLimitedChoices = isCafeScenario || isWorkshopScenario;
+const usesEligibilityLimitedChoices = isCafeScenario || isWorkshopScenario || isArcadeScenario;
 
 function createLiveDateState() {
   const participantRecords = Object.fromEntries(selectedIds.map((id) => [id, {
@@ -1410,6 +1579,8 @@ function createLiveDateState() {
     workshopResponsibilities: {},
     sensoryKitchenCompleted: false,
     stayLinkedDinnerCompleted: false,
+    sharedControllerCompleted: false,
+    photoBoothCompleted: false,
     ingredientPreparationPair: undefined,
     armWrestlingResult: undefined,
     armWrestlingWinningPair: undefined,
@@ -2095,20 +2266,22 @@ function ensureLiveDateBookletState() {
 }
 
 function ensureLiveDatePostcardState() {
+  const configuredPhotoSelections = activeDateFlow.simulatedResults.photoSelections
+    || canonicalDemoPhotoSelections;
   selectedIds.forEach((participantId) => {
     if (!liveDateState.submittedPhotos[participantId]) {
       liveDateState.submittedPhotos[participantId] = postcardSubmissions[participantId];
     }
     if (!liveDateState.photoSelections[participantId]) {
-      liveDateState.photoSelections[participantId] = canonicalDemoPhotoSelections[participantId];
+      liveDateState.photoSelections[participantId] = configuredPhotoSelections[participantId];
     }
   });
 
   if (!liveDateState.firstPairingResolved) {
-    const selectedByUserId = liveDateState.selectedByUserId || "jacob";
+    const selectedByUserId = liveDateState.selectedByUserId || defaultParticipantId;
     const selectedPhotoOwnerId = liveDateState.selectedPhotoOwnerId
       || liveDateState.photoSelections[selectedByUserId]
-      || canonicalDemoPhotoSelections[selectedByUserId];
+      || configuredPhotoSelections[selectedByUserId];
     resolveFirstPairing(selectedByUserId, selectedPhotoOwnerId);
   }
 }
@@ -2151,12 +2324,14 @@ function handleParticipantAction(event) {
     "photos-taken": finishCouplePhotoChallenge,
     "first-impression-submit": submitFirstImpression,
     "eye-contact-finished": finishEyeContact,
+    "shared-controller-finished": finishSharedControllerShowdown,
     "workshop-role-pick-finished": finishWorkshopRolePick,
     "sensory-kitchen-finished": finishSensoryKitchenChallenge,
     "stay-linked-dinner-finished": finishStayLinkedDinner,
     "setup-complete": finishCookoutSetup,
     "match-finished": finishArmWrestling,
     "stay-linked-finished": finishStayLinked,
+    "photo-booth-finished": finishPhotoBoothMemeRemake,
     "private-window-submit": submitPrivateWindowName,
     "final-signal-submit": submitFinalSignalName,
     "fast-forward-midnight": fastForwardToMidnight,
@@ -2498,7 +2673,17 @@ function showExperienceDetails() {
   setParticipantScreen(15);
   const card = app.querySelector("[data-experience-card]");
   card.classList.add("is-expanded");
-  const experienceFacts = isWorkshopScenario
+  const experienceFacts = isArcadeScenario
+    ? `
+        <div><span>Time</span><strong>${scheduledStartTime()}–${formatSimulatedTime(simulatedSchedule.liveDateTimestampMinutes + 120)}</strong></div>
+        <div><span>Meet</span><strong>${activeDateFlow.venue}</strong></div>
+        <div><span>Estimated cost</span><strong>$20–$35</strong></div>
+        <div><span>Setting</span><strong>Arcade bar · Photo booth</strong></div>
+        <div><span>Wear</span><strong>Something comfortable for games</strong></div>
+        <div><span>Bring</span><strong>Photo ID · This venue is 21+</strong></div>
+        <div><span>Getting there</span><strong>Metro or rideshare · allow 25–40 minutes</strong></div>
+      `
+    : isWorkshopScenario
     ? `
         <div><span>Time</span><strong>${scheduledStartTime()}–${formatSimulatedTime(simulatedSchedule.liveDateTimestampMinutes + 120)}</strong></div>
         <div><span>Meet</span><strong>${activeDateFlow.venue}</strong></div>
@@ -2526,7 +2711,9 @@ function showExperienceDetails() {
         <div><span>Bring</span><strong>A light hoodie and water</strong></div>
         <div><span>Getting there</span><strong>Rideshare from UCLA · allow 35–45 minutes</strong></div>
         `;
-  const experiencePreview = isWorkshopScenario
+  const experiencePreview = isArcadeScenario
+    ? "<span>Meet the group</span><span>Anonymous opening</span><span>Arcade showdown</span><span>Play in new pairs</span><span>Photo booth finish</span>"
+    : isWorkshopScenario
     ? "<span>Meet the group</span><span>Anonymous opening</span><span>Fresh pasta workshop</span><span>Dinner together</span><span>Final group moment</span>"
     : isCafeScenario
       ? "<span>Meet the group</span><span>Anonymous opening</span><span>Cafe challenge</span><span>Dessert and coffee</span><span>Final group moment</span>"
@@ -2807,10 +2994,10 @@ function confirmRelationshipBookletSelection() {
 }
 
 function simulatePostcardUpload() {
-  participantState.uploadedPostcard = postcardSubmissions.jacob;
-  liveDateState.submittedPhotos.jacob = participantState.uploadedPostcard;
+  participantState.uploadedPostcard = postcardSubmissions[defaultParticipantId];
+  liveDateState.submittedPhotos[defaultParticipantId] = participantState.uploadedPostcard;
   const preview = app.querySelector("[data-postcard-preview]");
-  preview.innerHTML = `<img src="${participantState.uploadedPostcard}" alt="Jacob's private postcard preview">`;
+  preview.innerHTML = `<img src="${participantState.uploadedPostcard}" alt="Your private postcard preview">`;
   app.querySelector("[data-participant-action='submit-postcard']").disabled = false;
   scrollParticipantThread();
 }
@@ -2818,7 +3005,7 @@ function simulatePostcardUpload() {
 function submitPostcard() {
   if (!participantState.uploadedPostcard) return;
   advanceSimulatedTime(3);
-  liveDateState.submittedPhotos.jacob = participantState.uploadedPostcard;
+  liveDateState.submittedPhotos[defaultParticipantId] = participantState.uploadedPostcard;
   selectedIds.forEach((participantId) => {
     if (!liveDateState.submittedPhotos[participantId]) {
       liveDateState.submittedPhotos[participantId] = postcardSubmissions[participantId];
@@ -2840,7 +3027,10 @@ function submitPostcard() {
 }
 
 function renderEligiblePostcards() {
-  const eligible = selectedGroup.filter((person) => person.id !== "jacob" && isMutuallyEligible("jacob", person.id));
+  const eligible = selectedGroup.filter((person) => (
+    person.id !== defaultParticipantId
+    && isMutuallyEligible(defaultParticipantId, person.id)
+  ));
   appendConversation(`
     <div class="message-row attachment-row" data-control="postcard-selection">
       <div class="anonymous-postcard-picker">
@@ -2872,7 +3062,7 @@ function selectPostcard(button) {
 
 function confirmPostcardSelection() {
   if (!participantState.postcardSelection) return;
-  if (!storePhotoSelection("jacob", participantState.postcardSelection)) return;
+  if (!storePhotoSelection(defaultParticipantId, participantState.postcardSelection)) return;
   completeControl("postcard-selection");
   advanceSimulatedTime(2);
   appendOutgoing("Picked one");
@@ -2889,6 +3079,8 @@ function renderOneDayReminder() {
   const liveDateDayLabel = relativeSimulatedDayLabel(simulatedSchedule.liveDateTimestampMinutes);
   const scenarioReminderLines = isWorkshopScenario
     ? ["Your workshop spots are reserved.", "Come ready to cook and eat."]
+    : isArcadeScenario
+      ? ["The arcade opens at six.", "Bring a valid photo ID. The venue is 21+."]
     : isCafeScenario
       ? ["Your table is reserved.", "Come ready for dessert and coffee."]
       : ["Looks like 22°C and clear.", "Bring a light hoodie for later."];
@@ -2916,7 +3108,7 @@ function showReminderDetails(button) {
     <div class="message-row attachment-row">
       <div class="compact-reminder-card">
         <img src="${activeDateFlow.image}" alt="${activeDateFlow.title}">
-        <div><strong>${simulatedWeekdayLabel(simulatedSchedule.liveDateTimestampMinutes)} · ${scheduledStartTime()}</strong><span>${activeDateFlow.venue}</span><span>${isWorkshopScenario ? "Teaching kitchen · Fresh pasta" : isCafeScenario ? "Indoor table · Dessert and coffee" : "22°C and clear · Bring a light hoodie"}</span></div>
+        <div><strong>${simulatedWeekdayLabel(simulatedSchedule.liveDateTimestampMinutes)} · ${scheduledStartTime()}</strong><span>${activeDateFlow.venue}</span><span>${isWorkshopScenario ? "Teaching kitchen · Fresh pasta" : isArcadeScenario ? "Arcade bar · Bring photo ID" : isCafeScenario ? "Indoor table · Dessert and coffee" : "22°C and clear · Bring a light hoodie"}</span></div>
       </div>
     </div>
   `);
@@ -3439,16 +3631,73 @@ function beginLiveDate() {
   scheduleParticipant(
     isWorkshopScenario
       ? showWorkshopRolePick
+      : isArcadeScenario
+        ? showSharedControllerShowdown
       : isCafeScenario
         ? showCouplePhotoChallenge
         : showLinkedDodgeball,
     1900,
     isWorkshopScenario
       ? "live-workshop-role-pick"
+      : isArcadeScenario
+        ? "live-arcade-shared-controller"
       : isCafeScenario
         ? "live-cafe-couple-photo"
         : "live-linked-dodgeball",
   );
+}
+
+function showSharedControllerShowdown() {
+  if (liveDateState.phaseAppended["shared-controller"]) return;
+  advanceLiveDatePhase("arrival");
+  const firstPairing = liveDateState.firstPairing.map((pair) => [...pair]);
+  recordPairingPhase("shared-controller", firstPairing, {
+    source: "photo_selection",
+    contactLevel: "low_contact",
+    comparableGame: "same_two_player_arcade_game",
+    splitControls: true,
+    switchRolesHalfway: true,
+    winnerBenefit: "bragging_rights_only",
+    pairingConsequence: false,
+    observedBy: selectedIds,
+  });
+  appendLiveDatePhase("shared-controller", [
+    incomingDateEntry([
+      "Each pair will play the same two-player arcade game.",
+      "One person controls movement. The other controls the action buttons.",
+      "Switch roles halfway through.",
+      "Try to beat the other pair's score before time runs out.",
+    ]),
+    controlDateEntry("shared-controller", `<div class="message-actions"><button class="message-action primary" data-participant-action="shared-controller-finished">Finished</button></div>`),
+  ]);
+}
+
+function finishSharedControllerShowdown() {
+  if (liveDateState.sharedControllerCompleted) return;
+  completeLiveDateControl("shared-controller");
+  const completionMinutes = advanceLiveDatePhase("shared-controller");
+  addDateEntries(
+    [liveDateState.activeParticipantId],
+    [outgoingDateEntry("Finished", completionMinutes)],
+    "result-shared-controller-user",
+  );
+  liveDateState.sharedControllerCompleted = true;
+  liveDateState.completedTasks.push("shared-controller");
+  renderActiveDateThread();
+  scheduleParticipant(() => {
+    addSharedDateEntries([incomingDateEntry(["Occupation unlocked."], completionMinutes)], "arcade-occupation-unlock");
+    renderActiveDateThread();
+  }, 700, "live-arcade-occupation-unlock");
+  scheduleParticipant(() => {
+    addSharedDateEntries([incomingDateEntry([
+      "You can tell the group what you do or what you're studying now. Keep your age and contact details private.",
+    ], completionMinutes)], "arcade-occupation-unlock-followup");
+    renderActiveDateThread();
+  }, 1050, "live-arcade-occupation-unlock-followup");
+  scheduleParticipant(() => {
+    advanceSimulatedTime(9);
+    showFirstImpression();
+  }, 1450, "live-arcade-first-impression");
 }
 
 function workshopPairKey(pair) {
@@ -3470,11 +3719,10 @@ function showWorkshopRolePick() {
     incomingDateEntry([
       "Your first pairing comes from the booklet pick.",
       `${pairLabel(firstPairing[0])} and ${pairLabel(firstPairing[1])}.`,
-      "Arm-Wrestling Role Pick",
       "Each pair, send one person forward.",
       "The winner gets first choice of which cooking task their pair will take.",
     ]),
-    controlDateEntry("workshop-role-pick", `<div class="message-actions"><button class="message-action primary" data-participant-action="workshop-role-pick-finished">Role pick finished</button></div>`),
+    controlDateEntry("workshop-role-pick", `<div class="message-actions"><button class="message-action primary" data-participant-action="workshop-role-pick-finished">Finished</button></div>`),
   ]);
 }
 
@@ -3484,7 +3732,7 @@ function finishWorkshopRolePick() {
   const completionMinutes = advanceLiveDatePhase("workshop-role-pick");
   addDateEntries(
     [liveDateState.activeParticipantId],
-    [outgoingDateEntry("Role pick finished", completionMinutes)],
+    [outgoingDateEntry("Finished", completionMinutes)],
     "result-workshop-role-pick-user",
   );
   const representatives = workshopDateFlow.simulatedResults.rolePickRepresentatives;
@@ -3543,12 +3791,11 @@ function showLinkedDodgeball() {
     incomingDateEntry([
       `Your first pairing comes from the ${usesRelationshipBooklet ? "booklet" : "photo"} pick.`,
       `${pairLabel(firstPairing[0])} versus ${pairLabel(firstPairing[1])}.`,
-      "Linked dodgeball.",
       "Each pair must stay linked for the entire game. Hold hands, link arms, or use the wrist band provided.",
       "Disconnect and the other pair gets the point.",
       "First pair to five wins.",
     ]),
-    controlDateEntry("linked-dodgeball", `<div class="message-actions"><button class="message-action primary" data-participant-action="game-finished">Game finished</button></div>`),
+    controlDateEntry("linked-dodgeball", `<div class="message-actions"><button class="message-action primary" data-participant-action="game-finished">Finished</button></div>`),
   ]);
 }
 
@@ -3556,7 +3803,7 @@ function finishLinkedDodgeball() {
   if (liveDateState.dodgeballResult) return;
   completeLiveDateControl("linked-dodgeball");
   const completionMinutes = advanceLiveDatePhase("linked-dodgeball");
-  addDateEntries([liveDateState.activeParticipantId], [outgoingDateEntry("Game finished", completionMinutes)], "result-linked-dodgeball-user");
+  addDateEntries([liveDateState.activeParticipantId], [outgoingDateEntry("Finished", completionMinutes)], "result-linked-dodgeball-user");
   const winner = [...liveDateState.firstPairing[0]];
   const loser = liveDateState.firstPairing[1];
   liveDateState.dodgeballResult = { winner, loser: [...loser], score: "5–3" };
@@ -3596,7 +3843,7 @@ function showCouplePhotoChallenge() {
         "Each pair has eight minutes to take one photo that could convince everyone you've been dating for six months.",
         "The other pair will judge.",
       ]),
-      controlDateEntry("couple-photo", `<div class="message-actions"><button class="message-action primary" data-participant-action="photos-taken">Photos taken</button></div>`),
+      controlDateEntry("couple-photo", `<div class="message-actions"><button class="message-action primary" data-participant-action="photos-taken">Finished</button></div>`),
     ]);
     return;
   }
@@ -3613,7 +3860,7 @@ function showCouplePhotoChallenge() {
       "The other pair will judge.",
       "The losing pair handles ingredient prep.",
     ]),
-    controlDateEntry("couple-photo", `<div class="message-actions"><button class="message-action primary" data-participant-action="photos-taken">Photos taken</button></div>`),
+    controlDateEntry("couple-photo", `<div class="message-actions"><button class="message-action primary" data-participant-action="photos-taken">Finished</button></div>`),
   ]);
 }
 
@@ -3625,7 +3872,7 @@ function finishCouplePhotoChallenge() {
   }
   completeLiveDateControl("couple-photo");
   const completionMinutes = advanceLiveDatePhase("couple-photo");
-  addDateEntries([liveDateState.activeParticipantId], [outgoingDateEntry("Photos taken", completionMinutes)], "result-couple-photo-user");
+  addDateEntries([liveDateState.activeParticipantId], [outgoingDateEntry("Finished", completionMinutes)], "result-couple-photo-user");
   const winner = [...beachDateFlow.simulatedResults.couplePhotoWinner];
   const loser = beachDateFlow.pairings.couplePhoto.find((pair) => !pairIncludes(pair, ...winner));
   liveDateState.couplePhotoResult = { winner, loser: [...loser] };
@@ -3654,7 +3901,7 @@ function finishCouplePhotoChallenge() {
 function finishCafeCouplePhotoChallenge() {
   completeLiveDateControl("couple-photo");
   const completionMinutes = advanceLiveDatePhase("couple-photo");
-  addDateEntries([liveDateState.activeParticipantId], [outgoingDateEntry("Photos taken", completionMinutes)], "result-cafe-couple-photo-user");
+  addDateEntries([liveDateState.activeParticipantId], [outgoingDateEntry("Finished", completionMinutes)], "result-cafe-couple-photo-user");
   liveDateState.couplePhotoResult = { pairs: liveDateState.firstPairing.map((pair) => [...pair]) };
   liveDateState.completedTasks.push("couple-photo");
   renderActiveDateThread();
@@ -3744,6 +3991,10 @@ function resolveFirstImpressions() {
   liveDateState.eyeContactPairing = nextPairing.map((pair) => [...pair]);
   liveDateState.firstImpressionsResolved = true;
   scheduleParticipant(() => {
+    if (isArcadeScenario) {
+      showArcadeFreshPairing();
+      return;
+    }
     if (isWorkshopScenario) {
       advanceNaturalTime("sensory-kitchen");
       showSensoryKitchenChallenge();
@@ -3751,7 +4002,7 @@ function resolveFirstImpressions() {
     }
     advanceNaturalTime("eye-contact");
     showEyeContact();
-  }, 800, isWorkshopScenario ? "live-sensory-kitchen" : "live-eye-contact");
+  }, 800, isArcadeScenario ? "live-arcade-fresh-pairing" : isWorkshopScenario ? "live-sensory-kitchen" : "live-eye-contact");
 }
 
 function submitFirstImpression() {
@@ -3793,15 +4044,48 @@ function showEyeContact() {
       "When Ditto counts you in, hold eye contact for ten seconds. No talking.",
       "3. 2. 1.",
     ]),
-    controlDateEntry("eye-contact", `<div class="message-actions"><button class="message-action primary" data-participant-action="eye-contact-finished">10 seconds finished</button></div>`),
+    controlDateEntry("eye-contact", `<div class="message-actions"><button class="message-action primary" data-participant-action="eye-contact-finished">Finished</button></div>`),
   ]);
+}
+
+function showArcadeFreshPairing() {
+  if (liveDateState.phaseAppended["arcade-free-time"]) return;
+  recordPairingPhase("arcade-free-time", liveDateState.eyeContactPairing, {
+    source: "private_first_impression",
+    freshRematch: pairingConfigurationKey(liveDateState.eyeContactPairing)
+      !== pairingConfigurationKey(liveDateState.firstPairing),
+    structuredTask: false,
+    observedBy: selectedIds,
+  });
+  appendLiveDatePhase("arcade-free-time", [
+    incomingDateEntry([
+      "New pairs.",
+      `${pairLabel(liveDateState.eyeContactPairing[0])} and ${pairLabel(liveDateState.eyeContactPairing[1])}.`,
+    ]),
+  ]);
+  scheduleParticipant(() => {
+    const completionMinutes = advanceLiveDatePhase("arcade-free-time");
+    addSharedDateEntries([incomingDateEntry(["Age unlocked."], completionMinutes)], "arcade-age-unlock");
+    renderActiveDateThread();
+  }, 700, "live-arcade-age-unlock");
+  scheduleParticipant(() => {
+    const completionMinutes = liveDateState.phaseCompletionTimes["arcade-free-time"];
+    addSharedDateEntries([incomingDateEntry([
+      "You can share your age now. Contact details stay private until after the date.",
+    ], completionMinutes)], "arcade-age-unlock-followup");
+    renderActiveDateThread();
+  }, 1050, "live-arcade-age-unlock-followup");
+  scheduleParticipant(() => {
+    advanceSimulatedTime(9);
+    showPrivateWindow();
+  }, 1450, "live-arcade-private-window");
 }
 
 function finishEyeContact() {
   if (liveDateState.eyeContactCompleted) return;
   completeLiveDateControl("eye-contact");
   const completionMinutes = advanceLiveDatePhase("eye-contact");
-  addDateEntries([liveDateState.activeParticipantId], [outgoingDateEntry("10 seconds finished", completionMinutes)], "result-eye-contact-user");
+  addDateEntries([liveDateState.activeParticipantId], [outgoingDateEntry("Finished", completionMinutes)], "result-eye-contact-user");
   liveDateState.eyeContactCompleted = true;
   liveDateState.completedTasks.push("eye-contact");
   addSharedDateEntries([incomingDateEntry(["That's ten seconds."], completionMinutes)], "result-eye-contact");
@@ -3854,12 +4138,11 @@ function showSensoryKitchenChallenge() {
       "New pairs.",
       `Pair 1: ${pairLabel(liveDateState.eyeContactPairing[0])}.`,
       `Pair 2: ${pairLabel(liveDateState.eyeContactPairing[1])}.`,
-      "Sensory Kitchen Challenge",
       "Pair 1: One person will be blindfolded. The other person cannot speak.",
       "Pair 2: One person will be blindfolded. The other person will wear headphones.",
       "Complete your assigned part of the recipe, then switch roles halfway through.",
     ]),
-    controlDateEntry("sensory-kitchen", `<div class="message-actions"><button class="message-action primary" data-participant-action="sensory-kitchen-finished">Challenge finished</button></div>`),
+    controlDateEntry("sensory-kitchen", `<div class="message-actions"><button class="message-action primary" data-participant-action="sensory-kitchen-finished">Finished</button></div>`),
   ]);
 }
 
@@ -3869,7 +4152,7 @@ function finishSensoryKitchenChallenge() {
   const completionMinutes = advanceLiveDatePhase("sensory-kitchen");
   addDateEntries(
     [liveDateState.activeParticipantId],
-    [outgoingDateEntry("Challenge finished", completionMinutes)],
+    [outgoingDateEntry("Finished", completionMinutes)],
     "result-sensory-kitchen-user",
   );
   liveDateState.sensoryKitchenCompleted = true;
@@ -3910,7 +4193,7 @@ function showCookoutSetup() {
       `${pairLabel(liveDateState.couplePhotoWinningPair)}, set up the table, drinks, plates, and barbecue area.`,
       "You have 20 minutes.",
     ]),
-    controlDateEntry("cookout-setup", `<div class="message-actions"><button class="message-action primary" data-participant-action="setup-complete">We're ready to grill</button></div>`),
+    controlDateEntry("cookout-setup", `<div class="message-actions"><button class="message-action primary" data-participant-action="setup-complete">Finished</button></div>`),
   ]);
 }
 
@@ -3918,7 +4201,7 @@ function finishCookoutSetup() {
   if (liveDateState.completedTasks.includes("cookout-setup")) return;
   completeLiveDateControl("cookout-setup");
   const completionMinutes = advanceLiveDatePhase("cookout-setup");
-  addDateEntries([liveDateState.activeParticipantId], [outgoingDateEntry("We're ready to grill", completionMinutes)], "result-cookout-setup-user");
+  addDateEntries([liveDateState.activeParticipantId], [outgoingDateEntry("Finished", completionMinutes)], "result-cookout-setup-user");
   liveDateState.completedTasks.push("cookout-setup");
   renderActiveDateThread();
   scheduleParticipant(() => {
@@ -3941,7 +4224,7 @@ function showArmWrestling() {
       "One arm-wrestling match decides it.",
       "The losing pair handles the grill.",
     ]),
-    controlDateEntry("arm-wrestling", `<div class="message-actions"><button class="message-action primary" data-participant-action="match-finished">Match finished</button></div>`),
+    controlDateEntry("arm-wrestling", `<div class="message-actions"><button class="message-action primary" data-participant-action="match-finished">Finished</button></div>`),
   ]);
 }
 
@@ -3949,7 +4232,7 @@ function finishArmWrestling() {
   if (liveDateState.armWrestlingResult) return;
   completeLiveDateControl("arm-wrestling");
   const completionMinutes = advanceLiveDatePhase("arm-wrestling");
-  addDateEntries([liveDateState.activeParticipantId], [outgoingDateEntry("Match finished", completionMinutes)], "result-arm-wrestling-user");
+  addDateEntries([liveDateState.activeParticipantId], [outgoingDateEntry("Finished", completionMinutes)], "result-arm-wrestling-user");
   const winnerId = beachDateFlow.simulatedResults.armWrestlingWinner;
   const winningPair = beachDateFlow.pairings.armWrestling.find((pair) => pair.includes(winnerId));
   const losingPair = beachDateFlow.pairings.armWrestling.find((pair) => !pair.includes(winnerId));
@@ -3985,7 +4268,9 @@ function nameInputControl(controlId, action, placeholder) {
 
 function showPrivateWindow() {
   if (liveDateState.phaseAppended["private-window"]) return;
-  const precedingPhaseId = isWorkshopScenario
+  const precedingPhaseId = isArcadeScenario
+    ? "arcade-free-time"
+    : isWorkshopScenario
     ? "workshop-free-time"
     : isCafeScenario
       ? "cafe-free-time"
@@ -4095,6 +4380,8 @@ function resolvePrivateWindowChoices() {
         `${personById(partnerId).name} asked for ten minutes with you too.`,
         isWorkshopScenario
           ? "Take the side table near the kitchen."
+          : isArcadeScenario
+            ? "Meet by the photo booth."
           : isCafeScenario
             ? "Take the quiet table by the window."
             : "Meet by the water.",
@@ -4117,6 +4404,10 @@ function resolvePrivateWindowChoices() {
   liveDateState.privateWindowResolved = true;
   renderActiveDateThread();
   scheduleParticipant(() => {
+    if (isArcadeScenario) {
+      showPhotoBoothMemeRemake();
+      return;
+    }
     if (isWorkshopScenario) {
       showStayLinkedDinner();
       return;
@@ -4127,7 +4418,66 @@ function resolvePrivateWindowChoices() {
       return;
     }
     showBeachFinalSignal();
-  }, 1200, isWorkshopScenario ? "live-stay-linked-dinner" : isCafeScenario ? "live-stay-linked" : "live-final-signal");
+  }, 1200, isArcadeScenario ? "live-photo-booth-meme" : isWorkshopScenario ? "live-stay-linked-dinner" : isCafeScenario ? "live-stay-linked" : "live-final-signal");
+}
+
+function memeReferenceControlHtml() {
+  return `
+    <div class="meme-reference-picker">
+      <div class="meme-reference-options">
+        ${arcadeMemeReferences.map((reference) => `
+          <figure class="meme-reference-frame">
+            <img src="${reference.image}" alt="${reference.label}">
+            <figcaption>${reference.label}</figcaption>
+          </figure>
+        `).join("")}
+      </div>
+      <button class="message-action primary" data-participant-action="photo-booth-finished">Finished</button>
+    </div>
+  `;
+}
+
+function showPhotoBoothMemeRemake() {
+  if (liveDateState.phaseAppended["photo-booth-meme"]) return;
+  recordPairingPhase("photo-booth-meme", liveDateState.eyeContactPairing, {
+    preservedFrom: "arcade-free-time",
+    contactLevel: "low_contact",
+    publicPostingRequired: false,
+    winner: false,
+    pairingConsequence: false,
+    observedBy: selectedIds,
+  });
+  appendLiveDatePhase("photo-booth-meme", [
+    incomingDateEntry([
+      "Your photo booth strip has four frames.",
+      "Recreate each reference once, in order.",
+      "Match the pose, expression, and overall energy as closely as you can.",
+    ]),
+    controlDateEntry("photo-booth-completion", memeReferenceControlHtml()),
+  ]);
+}
+
+function finishPhotoBoothMemeRemake() {
+  if (liveDateState.photoBoothCompleted) return;
+  completeLiveDateControl("photo-booth-completion");
+  const completionMinutes = advanceLiveDatePhase("photo-booth-meme");
+  addDateEntries(
+    [liveDateState.activeParticipantId],
+    [outgoingDateEntry("Finished", completionMinutes)],
+    "result-photo-booth-user",
+  );
+  liveDateState.photoBoothCompleted = true;
+  liveDateState.completedTasks.push("photo-booth-meme");
+  addSharedDateEntries([incomingDateEntry([
+    "Photo strip complete.",
+    "The photos stay with you.",
+  ], completionMinutes)], "result-photo-booth");
+  renderActiveDateThread();
+  scheduleParticipant(() => {
+    setLiveDatePhase("arcade-wind-down");
+    advanceLiveDatePhase("arcade-wind-down");
+    showBeachFinalSignal();
+  }, 800, "live-arcade-final-signal");
 }
 
 function showStayLinkedDinner() {
@@ -4140,12 +4490,11 @@ function showStayLinkedDinner() {
   });
   appendLiveDatePhase("stay-linked-dinner", [
     incomingDateEntry([
-      "Stay Linked Dinner",
       "For the first 15 minutes of dinner, each pair will wear a set of connected couple rings.",
       "Eat the pasta you made, keep the conversation going, and work around each other until time is up.",
       "Before the rings come off, offer your partner one bite.",
     ]),
-    controlDateEntry("stay-linked-dinner", `<div class="message-actions"><button class="message-action primary" data-participant-action="stay-linked-dinner-finished">15 minutes finished</button></div>`),
+    controlDateEntry("stay-linked-dinner", `<div class="message-actions"><button class="message-action primary" data-participant-action="stay-linked-dinner-finished">Finished</button></div>`),
   ]);
 }
 
@@ -4155,7 +4504,7 @@ function finishStayLinkedDinner() {
   const completionMinutes = advanceLiveDatePhase("stay-linked-dinner");
   addDateEntries(
     [liveDateState.activeParticipantId],
-    [outgoingDateEntry("15 minutes finished", completionMinutes)],
+    [outgoingDateEntry("Finished", completionMinutes)],
     "result-stay-linked-dinner-user",
   );
   liveDateState.stayLinkedDinnerCompleted = true;
@@ -4178,11 +4527,10 @@ function showStayLinked() {
   });
   appendLiveDatePhase("stay-linked", [
     incomingDateEntry([
-      "Stay Linked",
       "Each pair will wear a set of connected couple rings for the next 15 minutes.",
       "Eat dessert, drink your coffee, and talk without taking them off. You'll have to work around each other until time is up.",
     ]),
-    controlDateEntry("stay-linked", `<div class="message-actions"><button class="message-action primary" data-participant-action="stay-linked-finished">15 minutes finished</button></div>`),
+    controlDateEntry("stay-linked", `<div class="message-actions"><button class="message-action primary" data-participant-action="stay-linked-finished">Finished</button></div>`),
   ]);
 }
 
@@ -4190,7 +4538,7 @@ function finishStayLinked() {
   if (liveDateState.stayLinkedCompleted) return;
   completeLiveDateControl("stay-linked");
   const completionMinutes = advanceLiveDatePhase("stay-linked");
-  addDateEntries([liveDateState.activeParticipantId], [outgoingDateEntry("15 minutes finished", completionMinutes)], "result-stay-linked-user");
+  addDateEntries([liveDateState.activeParticipantId], [outgoingDateEntry("Finished", completionMinutes)], "result-stay-linked-user");
   liveDateState.stayLinkedCompleted = true;
   liveDateState.completedTasks.push("stay-linked");
   addSharedDateEntries([incomingDateEntry([
