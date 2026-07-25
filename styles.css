@@ -194,6 +194,8 @@ img { display: block; }
 .why-pass h1 { margin: 0; font-family: "Bodoni 72", Didot, Georgia, serif; font-size: 2.1rem; font-weight: 400; line-height: 1.15; letter-spacing: 0; }
 .why-portraits { height: 188px; display: grid; grid-template-columns: repeat(4,1fr); gap: 5px; }
 .why-avatar { width: 100%; height: 100%; min-width: 0; border-radius: 16px; }
+.reason-copy { min-height: 0; display: grid; align-content: center; gap: 9px; }
+.reason-fact { margin: 0; color: var(--muted); font-size: 0.66rem; line-height: 1.35; }
 .reason-stack { display: grid; gap: 14px; align-content: center; }
 .reason-stack span { display: flex; align-items: center; min-height: 52px; padding: 12px 16px; border: 1px solid rgba(255,255,255,0.16); border-radius: 22px; background: rgba(30,60,77,0.48); font-size: 0.82rem; animation: reasonIn 500ms var(--ease) both; animation-delay: var(--delay); }
 .reason-stack span:nth-child(2) { width: 86%; margin-left: auto; }
@@ -214,6 +216,15 @@ img { display: block; }
 .date-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 18px; }
 .date-meta span { display: block; color: rgba(255,255,255,0.45); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.06em; }
 .date-meta strong { display: block; margin-top: 3px; color: white; font-size: 0.7rem; }
+.plan-reasons { display: grid; gap: 3px; margin-top: 12px; padding-top: 9px; border-top: 1px solid rgba(255,255,255,0.14); }
+.plan-reasons > span { color: rgba(255,255,255,0.56); font-size: 0.58rem; font-weight: 700; text-transform: uppercase; }
+.plan-reasons p { margin: 0; color: rgba(255,255,255,0.82); font-size: 0.62rem; line-height: 1.28; }
+.plan-reasons p::before { content: "• "; color: rgba(255,255,255,0.48); }
+.date-details-with-reasons { padding-top: 14px; }
+.date-details-with-reasons h1 { margin-top: 4px; }
+.date-details-with-reasons .date-lede { margin-top: 8px; }
+.date-details-with-reasons .date-meta { margin-top: 10px; }
+.date-details-with-reasons .plan-reasons { gap: 2px; margin-top: 8px; padding-top: 5px; }
 .date-details .primary-action { position: absolute; left: 20px; right: 20px; bottom: 18px; width: calc(100% - 40px); margin: 0; }
 
 /* Participant mode */

@@ -681,6 +681,97 @@ applicants.forEach((profile) => {
   profile.relationshipProfile = relationshipProfileDetails[profile.id];
 });
 
+const compatibilityProfileDetails = {
+  jacob: {
+    conversationStyle: "reflective",
+    preferredActivityIntensity: "medium",
+    playfulness: 4,
+    photographyComfort: "high",
+    accessibilityRequirements: [],
+  },
+  olivia: {
+    conversationStyle: "direct",
+    preferredActivityIntensity: "medium",
+    playfulness: 4,
+    photographyComfort: "high",
+    accessibilityRequirements: [],
+  },
+  kayla: {
+    conversationStyle: "expressive",
+    preferredActivityIntensity: "high",
+    playfulness: 5,
+    photographyComfort: "high",
+    accessibilityRequirements: [],
+  },
+  lucas: {
+    conversationStyle: "reflective",
+    preferredActivityIntensity: "medium",
+    playfulness: 3,
+    photographyComfort: "medium",
+    accessibilityRequirements: [],
+  },
+  maya: {
+    conversationStyle: "reflective",
+    preferredActivityIntensity: "low",
+    playfulness: 3,
+    photographyComfort: "medium",
+    accessibilityRequirements: [],
+  },
+  ethan: {
+    conversationStyle: "expressive",
+    preferredActivityIntensity: "high",
+    playfulness: 5,
+    photographyComfort: "high",
+    accessibilityRequirements: [],
+  },
+  theo: {
+    conversationStyle: "reflective",
+    preferredActivityIntensity: "low",
+    playfulness: 3,
+    photographyComfort: "low",
+    accessibilityRequirements: [],
+  },
+  marcus: {
+    conversationStyle: "direct",
+    preferredActivityIntensity: "high",
+    playfulness: 5,
+    photographyComfort: "high",
+    accessibilityRequirements: [],
+  },
+  nia: {
+    conversationStyle: "expressive",
+    preferredActivityIntensity: "medium",
+    playfulness: 4,
+    photographyComfort: "high",
+    accessibilityRequirements: [],
+  },
+  sora: {
+    conversationStyle: "reflective",
+    preferredActivityIntensity: "low",
+    playfulness: 3,
+    photographyComfort: "medium",
+    accessibilityRequirements: [],
+  },
+  leila: {
+    conversationStyle: "direct",
+    preferredActivityIntensity: "high",
+    playfulness: 5,
+    photographyComfort: "high",
+    accessibilityRequirements: [],
+  },
+  avery: {
+    conversationStyle: "expressive",
+    preferredActivityIntensity: "medium",
+    playfulness: 4,
+    photographyComfort: "medium",
+    accessibilityRequirements: [],
+  },
+};
+
+applicants.forEach((profile) => {
+  Object.assign(profile, compatibilityProfileDetails[profile.id]);
+});
+
 const groupPhotos = {
   allApplicants: "assets/groups/group-1.jpg",
   beachCookout: "assets/groups/group-2.jpg",
@@ -872,6 +963,219 @@ function scoreCandidateGroup(group, configurations) {
   return {
     score: Object.values(scoreBreakdown).reduce((sum, value) => sum + value, 0),
     scoreBreakdown,
+  };
+}
+
+const GROUP_COMPATIBILITY_WEIGHTS = Object.freeze({
+  sharedInterests: 12,
+  datePreferences: 10,
+  relationshipAlignment: 10,
+  socialEnergy: 8,
+  conversationStyle: 7,
+  activityIntensity: 7,
+  creativity: 6,
+  competitiveness: 5,
+  playfulness: 6,
+  personalityComplementarity: 7,
+  photographyComfort: 4,
+  closenessComfort: 5,
+  varietyBalance: 5,
+  pairingConfigurations: 5,
+  sharedAvailability: 3,
+});
+
+const DATE_CATEGORY_FIT_WEIGHTS = Object.freeze({
+  categoryPreference: 15,
+  interests: 10,
+  relationshipIntention: 5,
+  socialEnergy: 8,
+  activityIntensity: 8,
+  creativity: 7,
+  competitiveness: 5,
+  comfortAccessibility: 8,
+  photographyCompatibility: 5,
+  closenessComfort: 6,
+  availability: 5,
+  durationFit: 4,
+  venueFeasibility: 5,
+  partnerRotation: 4,
+  structuredConversationBalance: 5,
+});
+
+function normalizedScore(value, minimum = 0, maximum = 1) {
+  if (maximum === minimum) return 1;
+  return Math.max(0, Math.min(1, (value - minimum) / (maximum - minimum)));
+}
+
+function futurePairingConfigurationsIgnoringAge(group) {
+  if (group.length !== 4) return [];
+  const pairingIndexes = [
+    [[0, 1], [2, 3]],
+    [[0, 2], [1, 3]],
+    [[0, 3], [1, 2]],
+  ];
+  const pairIsEligibleIgnoringAge = (first, second) => (
+    first.id !== second.id
+    && first.interestedIn.includes(second.gender)
+    && second.interestedIn.includes(first.gender)
+    && relationshipIntentionsAlign(first, second)
+  );
+  return pairingIndexes
+    .map((configuration) => configuration.map(([firstIndex, secondIndex]) => [
+      group[firstIndex],
+      group[secondIndex],
+    ]))
+    .filter((configuration) => configuration.every(([first, second]) => (
+      pairIsEligibleIgnoringAge(first, second)
+    )));
+}
+
+function groupHardFilter(group) {
+  const reasons = [];
+  const sharedAvailability = rollingSharedAvailabilityForGroup(group);
+  const sharedIntentions = sharedRelationshipIntentions(group);
+  const configurationsIgnoringAge = futurePairingConfigurationsIgnoringAge(group);
+  const configurations = futurePairingConfigurations(group);
+  const eligibleMatchCounts = group.map((profile) => (
+    group.filter((candidate) => isFuturePairEligible(profile, candidate)).length
+  ));
+  const comfortValues = { low: 1, medium: 2, high: 3 };
+  const comfortScores = group.map((profile) => comfortValues[profile.closenessComfortLevel]);
+  const hasCompleteComfortData = comfortScores.every(Number.isFinite);
+  const hasCompatibleAccessibilityData = group.every((profile) => (
+    Array.isArray(profile.accessibilityRequirements)
+  ));
+
+  if (sharedAvailability.length === 0) reasons.push("no shared availability");
+  if (sharedIntentions.length === 0) reasons.push("incompatible relationship intentions");
+  if (
+    configurations.length < 2
+    && configurationsIgnoringAge.length >= 2
+  ) reasons.push("age preference conflict");
+  if (configurations.length < 2) reasons.push("insufficient eligible pairing configurations");
+  if (eligibleMatchCounts.some((count) => count < 2)) reasons.push("unmatched participant risk");
+  if (
+    !hasCompleteComfortData
+    || !hasCompatibleAccessibilityData
+    || Math.max(...comfortScores) - Math.min(...comfortScores) > 2
+  ) reasons.push("comfort or accessibility conflict");
+
+  return {
+    valid: reasons.length === 0,
+    reasons: [...new Set(reasons)],
+    sharedAvailability,
+    sharedIntentions,
+    configurations,
+  };
+}
+
+function groupFactorScores(group, hardFilter) {
+  const sharedInterests = highlightedProfileValues(group, "interests");
+  const datePreferences = highlightedProfileValues(group, "preferredDateCategories");
+  const energyValues = { low: 1, medium: 2, high: 3 };
+  const intensityValues = { low: 1, medium: 2, high: 3 };
+  const comfortValues = { low: 1, medium: 2, high: 3 };
+  const photographyValues = { low: 1, medium: 2, high: 3 };
+  const energyScores = group.map((profile) => energyValues[profile.socialEnergy]);
+  const intensityScores = group.map((profile) => intensityValues[profile.preferredActivityIntensity]);
+  const comfortScores = group.map((profile) => comfortValues[profile.closenessComfortLevel]);
+  const conversationStyles = new Set(group.map((profile) => profile.conversationStyle));
+  const personalityTraits = new Set(group.flatMap((profile) => profile.personalityTraits));
+  const average = (field) => group.reduce((sum, profile) => sum + profile[field], 0) / group.length;
+  const balancedAverage = (value, ideal = 3.5) => 1 - Math.min(1, Math.abs(value - ideal) / 2.5);
+  return {
+    sharedInterests: normalizedScore(sharedInterests.length, 0, 4),
+    datePreferences: normalizedScore(datePreferences.length, 0, 4),
+    relationshipAlignment: hardFilter.sharedIntentions.length > 1 ? 1 : 0.9,
+    socialEnergy: 1 - normalizedScore(Math.max(...energyScores) - Math.min(...energyScores), 0, 2),
+    conversationStyle: conversationStyles.size === 2 ? 1 : conversationStyles.size === 1 ? 0.8 : 0.72,
+    activityIntensity: 1 - normalizedScore(Math.max(...intensityScores) - Math.min(...intensityScores), 0, 2),
+    creativity: balancedAverage(average("creativity")),
+    competitiveness: balancedAverage(average("competitiveness"), 3),
+    playfulness: normalizedScore(average("playfulness"), 1, 5),
+    personalityComplementarity: normalizedScore(personalityTraits.size, 4, 8),
+    photographyComfort: normalizedScore(group.reduce((sum, profile) => (
+      sum + photographyValues[profile.photographyComfort]
+    ), 0) / group.length, 1, 3),
+    closenessComfort: normalizedScore(Math.min(...comfortScores), 1, 3),
+    varietyBalance: normalizedScore(
+      personalityTraits.size
+      + new Set(group.map((profile) => profile.socialEnergy)).size,
+      5,
+      11,
+    ),
+    pairingConfigurations: normalizedScore(hardFilter.configurations.length, 2, 3),
+    sharedAvailability: normalizedScore(hardFilter.sharedAvailability.length, 1, 3),
+  };
+}
+
+const GROUP_SIGNAL_COPY = {
+  sharedInterests: "strong overlap in shared interests",
+  datePreferences: "compatible preferred date categories",
+  relationshipAlignment: "aligned relationship intentions",
+  socialEnergy: "balanced social energy",
+  conversationStyle: "compatible conversation styles",
+  activityIntensity: "compatible activity intensity",
+  creativity: "balanced creative energy",
+  competitiveness: "competition level fits the group",
+  playfulness: "shared playful energy",
+  personalityComplementarity: "complementary personality traits",
+  photographyComfort: "compatible photography comfort",
+  closenessComfort: "compatible closeness comfort",
+  varietyBalance: "enough similarity with useful variety",
+  pairingConfigurations: "multiple valid partner rotations",
+  sharedAvailability: "strong shared availability",
+};
+
+function scoreCompatibilityCandidate(group, hardFilter) {
+  const factors = groupFactorScores(group, hardFilter);
+  const contributions = Object.fromEntries(Object.entries(GROUP_COMPATIBILITY_WEIGHTS).map(
+    ([factor, weight]) => [factor, factors[factor] * weight],
+  ));
+  const score = Math.round(Object.values(contributions).reduce((sum, value) => sum + value, 0));
+  const strongestSignals = Object.entries(contributions)
+    .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
+    .slice(0, 5)
+    .map(([factor]) => GROUP_SIGNAL_COPY[factor]);
+  return { score, factors, contributions, strongestSignals };
+}
+
+function analyzeCompatibilityGroups(pool = applicants) {
+  const rejectedCandidates = [];
+  const validCandidates = [];
+  allFourPersonGroups(pool).forEach((group) => {
+    const hardFilter = groupHardFilter(group);
+    if (!hardFilter.valid) {
+      rejectedCandidates.push({
+        memberIds: group.map((profile) => profile.id),
+        reasons: hardFilter.reasons,
+      });
+      return;
+    }
+    validCandidates.push({
+      group,
+      memberIds: group.map((profile) => profile.id),
+      hardFilter,
+      ...scoreCompatibilityCandidate(group, hardFilter),
+    });
+  });
+  validCandidates.sort((left, right) => (
+    right.score - left.score
+    || left.memberIds.slice().sort().join(":").localeCompare(right.memberIds.slice().sort().join(":"))
+  ));
+  const rejectionCounts = rejectedCandidates
+    .flatMap((candidate) => candidate.reasons)
+    .reduce((counts, reason) => ({
+      ...counts,
+      [reason]: (counts[reason] || 0) + 1,
+    }), {});
+  return {
+    candidatesEvaluated: validCandidates.length + rejectedCandidates.length,
+    validCandidates,
+    rejectedCandidates,
+    rejectionCounts,
+    selected: validCandidates[0],
+    alternatives: validCandidates.slice(1, 3),
   };
 }
 
@@ -1274,26 +1578,20 @@ function formDeterministicFairGroup(pool = applicants) {
   };
 }
 
-const requestedScenarioId = new URLSearchParams(window.location?.search || "").get("scenario");
+const requestedScenarioId = new URLSearchParams(window.location.search).get("scenario");
 const cafeGroupFormation = formDeterministicCafeGroup();
 const workshopGroupFormation = formDeterministicWorkshopGroup();
 const arcadeGroupFormation = formDeterministicArcadeGroup();
 const fairGroupFormation = formDeterministicFairGroup();
-const isCafeScenario = requestedScenarioId === "cafe" && Boolean(cafeGroupFormation);
-const isWorkshopScenario = requestedScenarioId === "workshop" && Boolean(workshopGroupFormation);
-const isArcadeScenario = requestedScenarioId === "arcade" && Boolean(arcadeGroupFormation);
-const isFairScenario = requestedScenarioId === "fair" && Boolean(fairGroupFormation);
+const automaticGroupAnalysis = requestedScenarioId ? undefined : analyzeCompatibilityGroups();
+let isCafeScenario = requestedScenarioId === "cafe" && Boolean(cafeGroupFormation);
+let isWorkshopScenario = requestedScenarioId === "workshop" && Boolean(workshopGroupFormation);
+let isArcadeScenario = requestedScenarioId === "arcade" && Boolean(arcadeGroupFormation);
+let isFairScenario = requestedScenarioId === "fair" && Boolean(fairGroupFormation);
 
-if (isCafeScenario || isWorkshopScenario || isArcadeScenario || isFairScenario) {
-  const scenarioGroupFormation = isWorkshopScenario
-    ? workshopGroupFormation
-    : isFairScenario
-      ? fairGroupFormation
-    : isArcadeScenario
-      ? arcadeGroupFormation
-      : cafeGroupFormation;
-  selectedIds = [...scenarioGroupFormation.memberIds];
-  selectedGroup = applicants.filter((person) => selectedIds.includes(person.id));
+function applySelectedGroup(memberIds) {
+  selectedIds = [...memberIds];
+  selectedGroup = selectedIds.map((id) => applicants.find((person) => person.id === id));
   romanticEligibilityPairs = [];
   for (let first = 0; first < selectedGroup.length - 1; first += 1) {
     for (let second = first + 1; second < selectedGroup.length; second += 1) {
@@ -1304,9 +1602,22 @@ if (isCafeScenario || isWorkshopScenario || isArcadeScenario || isFairScenario) 
   }
 }
 
+if (!requestedScenarioId && automaticGroupAnalysis?.selected) {
+  applySelectedGroup(automaticGroupAnalysis.selected.memberIds);
+} else if (isCafeScenario || isWorkshopScenario || isArcadeScenario || isFairScenario) {
+  const scenarioGroupFormation = isWorkshopScenario
+    ? workshopGroupFormation
+    : isFairScenario
+      ? fairGroupFormation
+    : isArcadeScenario
+      ? arcadeGroupFormation
+      : cafeGroupFormation;
+  applySelectedGroup(scenarioGroupFormation.memberIds);
+}
+
 const defaultParticipantId = selectedIds[0];
 
-const founderGroupFormationExamples = ["jacob", "maya", "marcus"]
+const groupFormationExamples = ["jacob", "maya", "marcus"]
   .map((participantId) => formDeterministicGroup(participantId))
   .filter(Boolean);
 
@@ -1317,7 +1628,8 @@ window.dittoGroupFormation = Object.freeze({
   workshopScenario: workshopGroupFormation,
   arcadeScenario: arcadeGroupFormation,
   fairScenario: fairGroupFormation,
-  examples: founderGroupFormationExamples,
+  automaticSelection: automaticGroupAnalysis,
+  examples: groupFormationExamples,
   formGroupForApplicant: formDeterministicGroup,
   isPairEligible: (firstId, secondId) => {
     const first = applicants.find((profile) => profile.id === firstId);
@@ -1331,9 +1643,14 @@ const postcardSubmissions = {
   olivia: "assets/postcards/postcard-01.png",
   kayla: "assets/postcards/postcard-02.png",
   lucas: "assets/postcards/postcard-03.png",
+  maya: "assets/postcards/postcard-02.png",
   ethan: "assets/postcards/postcard-01.png",
+  theo: "assets/postcards/postcard-03.png",
   marcus: "assets/postcards/postcard-03.png",
+  nia: "assets/postcards/postcard-01.png",
+  sora: "assets/postcards/postcard-04.png",
   leila: "assets/postcards/postcard-04.png",
+  avery: "assets/postcards/postcard-02.png",
 };
 
 const canonicalDemoPhotoSelections = {
@@ -1712,17 +2029,405 @@ function validateDatePlanVenue(dateFlow) {
 
 [beachDateFlow, cafeDateFlow, workshopDateFlow, arcadeDateFlow, fairDateFlow].forEach(validateDatePlanVenue);
 
-const activeDateFlow = isWorkshopScenario
-  ? workshopDateFlow
-  : isFairScenario
-    ? fairDateFlow
-  : isArcadeScenario
-    ? arcadeDateFlow
-  : isCafeScenario
-    ? cafeDateFlow
-    : beachDateFlow;
-const usesRelationshipBooklet = activeDateFlow.preDateFormat === "relationship_booklet";
-const usesEligibilityLimitedChoices = isCafeScenario || isWorkshopScenario || isArcadeScenario || isFairScenario;
+let activeDateFlow;
+let usesRelationshipBooklet;
+let usesEligibilityLimitedChoices;
+let behindDittoSelection;
+
+const DATE_CATEGORIES = Object.freeze([
+  {
+    id: "nature",
+    label: "Nature & Scenic",
+    scenarioId: "dockweiler",
+    baseFlow: beachDateFlow,
+    preferenceTerms: ["outdoors", "creative"],
+    interestTerms: ["barbecue", "campus trails", "cookouts", "picnics", "sunset walks", "volleyball"],
+    targetEnergy: 2,
+    targetIntensity: 2,
+    durationMinutes: 180,
+    closenessRequirement: 1,
+    structureLevel: 0.55,
+  },
+  {
+    id: "indoor_seated",
+    label: "Indoor Seated",
+    scenarioId: "cafe",
+    baseFlow: cafeDateFlow,
+    preferenceTerms: ["food-and-drink", "creative"],
+    interestTerms: ["bookstores", "ceramics", "farmers markets", "mixology", "playlist swaps"],
+    targetEnergy: 1.5,
+    targetIntensity: 1,
+    durationMinutes: 90,
+    closenessRequirement: 2,
+    structureLevel: 0.35,
+  },
+  {
+    id: "indoor_exploring_active",
+    label: "Indoor Exploring & Active",
+    scenarioId: "arcade",
+    baseFlow: arcadeDateFlow,
+    preferenceTerms: ["active", "culture-and-nightlife"],
+    interestTerms: ["arcades", "pickup soccer", "strategy games", "volleyball"],
+    targetEnergy: 3,
+    targetIntensity: 3,
+    durationMinutes: 120,
+    closenessRequirement: 1,
+    structureLevel: 0.65,
+  },
+  {
+    id: "outdoor_events_activities",
+    label: "Outdoor Events & Activities",
+    scenarioId: "fair",
+    baseFlow: fairDateFlow,
+    preferenceTerms: ["active", "culture-and-nightlife", "outdoors"],
+    interestTerms: ["arcades", "farmers markets", "live music", "night markets", "street photography"],
+    targetEnergy: 3,
+    targetIntensity: 3,
+    durationMinutes: 150,
+    closenessRequirement: 1,
+    structureLevel: 0.5,
+  },
+  {
+    id: "structured_workshop",
+    label: "Structured Workshop",
+    scenarioId: "workshop",
+    baseFlow: workshopDateFlow,
+    preferenceTerms: ["creative", "food-and-drink"],
+    interestTerms: ["barbecue", "ceramics", "cookouts", "strategy games"],
+    targetEnergy: 2,
+    targetIntensity: 2,
+    durationMinutes: 120,
+    closenessRequirement: 2,
+    structureLevel: 0.85,
+  },
+]);
+
+const DATE_SIGNAL_COPY = {
+  categoryPreference: "strong group preference for this date style",
+  interests: "shared interests fit the experience",
+  relationshipIntention: "structure fits the shared relationship mode",
+  socialEnergy: "matches the group’s social energy",
+  activityIntensity: "matches preferred activity intensity",
+  creativity: "supports the group’s creative energy",
+  competitiveness: "competition level fits the group",
+  comfortAccessibility: "fits current comfort and accessibility needs",
+  photographyCompatibility: "photography comfort supports the plan",
+  closenessComfort: "closeness level fits the group",
+  availability: "fits shared availability",
+  durationFit: "duration fits the shared time window",
+  venueFeasibility: "approved venue is feasible",
+  partnerRotation: "supports valid partner rotation",
+  structuredConversationBalance: "balances structure with natural conversation",
+};
+
+function dateCategoryFeasibility(candidate, category, schedule) {
+  const reasons = [];
+  const group = candidate.group;
+  const configurations = candidate.hardFilter.configurations;
+  const comfortValues = { low: 1, medium: 2, high: 3 };
+  const selectedAvailability = schedule.selectedAvailability;
+  const availableMinutes = selectedAvailability
+    ? selectedAvailability.endMinute - selectedAvailability.startMinute
+    : 0;
+  if (configurations.length < 2) reasons.push("not enough valid partner rotations");
+  if (!selectedAvailability || category.durationMinutes > availableMinutes) {
+    reasons.push("shared availability is too short");
+  }
+  if (group.some((profile) => (
+    comfortValues[profile.closenessComfortLevel] < category.closenessRequirement
+  ))) reasons.push("closeness requirements exceed group comfort");
+  if (group.some((profile) => profile.accessibilityRequirements.length > 0)) {
+    reasons.push("venue accessibility requires manual review");
+  }
+  if (category.scenarioId === "arcade" && group.some((profile) => profile.age < 21)) {
+    reasons.push("venue age requirement is not met");
+  }
+  if (category.scenarioId === "fair") {
+    const genderCounts = group.reduce((counts, profile) => ({
+      ...counts,
+      [profile.gender]: (counts[profile.gender] || 0) + 1,
+    }), {});
+    if (genderCounts.woman !== 2 || genderCounts.man !== 2) {
+      reasons.push("fixture role requirements are not supported");
+    }
+    const operatingHours = fairDateFlow.operatingCalendar[selectedAvailability?.dateKey];
+    const plannedEndMinute = selectedAvailability
+      ? selectedAvailability.startMinute + category.durationMinutes
+      : undefined;
+    if (
+      !selectedAvailability
+      || !operatingHours
+      || selectedAvailability.startMinute < operatingHours.openMinute
+      || plannedEndMinute > operatingHours.closeMinute
+    ) reasons.push("venue operating window does not fit");
+  }
+  return { feasible: reasons.length === 0, blockedReasons: [...new Set(reasons)] };
+}
+
+function dateCategoryFactors(candidate, category, schedule) {
+  const group = candidate.group;
+  const energyValues = { low: 1, medium: 2, high: 3 };
+  const intensityValues = { low: 1, medium: 2, high: 3 };
+  const comfortValues = { low: 1, medium: 2, high: 3 };
+  const photographyValues = { low: 1, medium: 2, high: 3 };
+  const average = (values) => values.reduce((sum, value) => sum + value, 0) / values.length;
+  const preferenceMatches = group.map((profile) => (
+    profile.preferredDateCategories.filter((value) => category.preferenceTerms.includes(value)).length
+    / category.preferenceTerms.length
+  ));
+  const interestMatches = group.map((profile) => (
+    profile.interests.some((value) => category.interestTerms.includes(value)) ? 1 : 0
+  ));
+  const averageEnergy = average(group.map((profile) => energyValues[profile.socialEnergy]));
+  const averageIntensity = average(group.map((profile) => intensityValues[profile.preferredActivityIntensity]));
+  const averageCreativity = average(group.map((profile) => profile.creativity));
+  const averageCompetitiveness = average(group.map((profile) => profile.competitiveness));
+  const minimumComfort = Math.min(...group.map((profile) => comfortValues[profile.closenessComfortLevel]));
+  const averagePhotography = average(group.map((profile) => photographyValues[profile.photographyComfort]));
+  const selectedAvailability = schedule.selectedAvailability;
+  const availableMinutes = selectedAvailability
+    ? selectedAvailability.endMinute - selectedAvailability.startMinute
+    : 0;
+  const relationshipMode = selectSharedRelationshipIntention(group);
+  const relationshipStructureFit = relationshipMode === "serious_relationship"
+    ? 1 - Math.abs(category.structureLevel - 0.7)
+    : 1 - Math.abs(category.structureLevel - 0.5);
+  return {
+    categoryPreference: average(preferenceMatches),
+    interests: average(interestMatches),
+    relationshipIntention: relationshipStructureFit,
+    socialEnergy: 1 - Math.min(1, Math.abs(averageEnergy - category.targetEnergy) / 2),
+    activityIntensity: 1 - Math.min(1, Math.abs(averageIntensity - category.targetIntensity) / 2),
+    creativity: category.id === "structured_workshop" || category.id === "nature"
+      ? normalizedScore(averageCreativity, 1, 5)
+      : 1 - Math.min(1, Math.abs(averageCreativity - 3.5) / 3.5),
+    competitiveness: category.id === "indoor_exploring_active" || category.id === "outdoor_events_activities"
+      ? normalizedScore(averageCompetitiveness, 1, 5)
+      : 1 - Math.min(1, Math.abs(averageCompetitiveness - 3) / 3),
+    comfortAccessibility: group.every((profile) => profile.accessibilityRequirements.length === 0) ? 1 : 0,
+    photographyCompatibility: category.id === "nature" || category.id === "outdoor_events_activities"
+      ? normalizedScore(averagePhotography, 1, 3)
+      : 0.75,
+    closenessComfort: normalizedScore(minimumComfort, category.closenessRequirement, 3),
+    availability: normalizedScore(candidate.hardFilter.sharedAvailability.length, 1, 3),
+    durationFit: availableMinutes >= category.durationMinutes
+      ? 1 - Math.min(0.35, (availableMinutes - category.durationMinutes) / 600)
+      : 0,
+    venueFeasibility: 1,
+    partnerRotation: normalizedScore(candidate.hardFilter.configurations.length, 2, 3),
+    structuredConversationBalance: 1 - Math.min(
+      1,
+      Math.abs(category.structureLevel - (
+        new Set(group.map((profile) => profile.conversationStyle)).size > 1 ? 0.6 : 0.45
+      )),
+    ),
+  };
+}
+
+function createCategorySchedule(sharedAvailability, durationMinutes) {
+  const schedule = createSimulatedSchedule(sessionAnchorDate, sharedAvailability);
+  const selected = schedule.selectedAvailability;
+  if (!selected) return schedule;
+  const sourceWindow = schedule.confirmedAvailability.find((entry) => (
+    availabilityEntryKey(entry) === availabilityEntryKey(selected)
+  ));
+  if (!sourceWindow) return schedule;
+  const latestValidStart = sourceWindow.endMinute - durationMinutes;
+  const adjustedStartMinute = Math.min(selected.startMinute, latestValidStart);
+  if (adjustedStartMinute < sourceWindow.startMinute) return schedule;
+  const [year, monthNumber, day] = selected.dateKey.split("-").map(Number);
+  return {
+    ...schedule,
+    selectedAvailability: {
+      ...selected,
+      startMinute: adjustedStartMinute,
+    },
+    liveDateTimestampMinutes: simulatedTimestamp(
+      year,
+      monthNumber - 1,
+      day,
+      Math.floor(adjustedStartMinute / 60),
+      adjustedStartMinute % 60,
+    ),
+  };
+}
+
+function scoreDateCategories(candidate) {
+  return DATE_CATEGORIES.map((category) => {
+    const schedule = createCategorySchedule(
+      candidate.hardFilter.sharedAvailability,
+      category.durationMinutes,
+    );
+    const factors = dateCategoryFactors(candidate, category, schedule);
+    const contributions = Object.fromEntries(Object.entries(DATE_CATEGORY_FIT_WEIGHTS).map(
+      ([factor, weight]) => [factor, factors[factor] * weight],
+    ));
+    const score = Math.round(Object.values(contributions).reduce((sum, value) => sum + value, 0));
+    const feasibility = dateCategoryFeasibility(candidate, category, schedule);
+    const strongestReasons = Object.entries(contributions)
+      .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
+      .slice(0, 5)
+      .map(([factor]) => DATE_SIGNAL_COPY[factor]);
+    return {
+      ...category,
+      score,
+      factors,
+      contributions,
+      strongestReasons,
+      ...feasibility,
+      schedule,
+    };
+  }).sort((left, right) => (
+    right.score - left.score || left.label.localeCompare(right.label)
+  ));
+}
+
+function reciprocalSelections(configuration) {
+  return Object.fromEntries(configuration.flatMap(([firstId, secondId]) => [
+    [firstId, secondId],
+    [secondId, firstId],
+  ]));
+}
+
+function createScenarioFlowForGroup(baseFlow, candidate, categoryResult) {
+  const configurations = candidate.hardFilter.configurations.map((configuration) => (
+    configuration.map((pair) => pair.map((profile) => profile.id))
+  ));
+  const firstPairing = configurations[0];
+  const secondPairing = configurations[1] || configurations[0];
+  const firstSelections = reciprocalSelections(firstPairing);
+  const secondSelections = reciprocalSelections(secondPairing);
+  const group = candidate.group;
+  const flow = {
+    ...baseFlow,
+    phases: baseFlow.phases.map((phase) => ({ ...phase })),
+    naturalIntervals: { ...(baseFlow.naturalIntervals || {}) },
+    pairings: { ...(baseFlow.pairings || {}) },
+    simulatedResults: {
+      ...(baseFlow.simulatedResults || {}),
+      bookletSelections: firstSelections,
+      photoSelections: firstSelections,
+      firstImpressions: secondSelections,
+      privateWindowChoices: secondSelections,
+      finalSignals: secondSelections,
+    },
+    preDateFormat: preDateFormatForGroup(group),
+  };
+
+  if (categoryResult.scenarioId === "dockweiler") {
+    flow.pairings = { couplePhoto: secondPairing, armWrestling: secondPairing };
+    flow.simulatedResults.couplePhotoWinner = secondPairing[0];
+    flow.simulatedResults.armWrestlingWinner = secondPairing[0][0];
+  }
+  if (categoryResult.scenarioId === "cafe") {
+    flow.pairings = { couplePhoto: firstPairing, eyeContact: secondPairing };
+  }
+  if (categoryResult.scenarioId === "workshop") {
+    flow.pairings = {
+      rolePick: firstPairing,
+      sensoryKitchen: secondPairing,
+      stayLinkedDinner: secondPairing,
+    };
+    flow.simulatedResults.rolePickRepresentatives = firstPairing.map((pair) => pair[0]);
+    flow.simulatedResults.rolePickWinner = firstPairing[0][0];
+    flow.simulatedResults.workshopResponsibilities = {
+      [firstPairing[0].slice().sort().join(":")]: "make and knead the pasta dough",
+      [firstPairing[1].slice().sort().join(":")]: "prepare the sauce and organize plating",
+    };
+  }
+  if (categoryResult.scenarioId === "arcade") {
+    flow.pairings = {
+      sharedController: firstPairing,
+      freeArcade: secondPairing,
+      photoBooth: secondPairing,
+    };
+  }
+  if (categoryResult.scenarioId === "fair") {
+    const chooserIds = group.filter((profile) => profile.gender === "woman").map((profile) => profile.id);
+    const claimerIds = group.filter((profile) => profile.gender === "man").map((profile) => profile.id);
+    flow.roleAssignments = { attractionChoosers: chooserIds, attractionClaimers: claimerIds };
+    flow.pairings = { opening: firstPairing, partnerPhoto: secondPairing };
+    flow.simulatedResults.attractionChoices = Object.fromEntries(
+      chooserIds.map((participantId, index) => [participantId, flow.attractionOptions[index].id]),
+    );
+    const complimentCopy = [
+      "You make everything feel way less awkward.",
+      "Your energy is actually so easy to be around.",
+      "You notice little things in a really sweet way.",
+      "You’re funny without trying too hard.",
+    ];
+    flow.simulatedResults.anonymousCompliments = Object.fromEntries(group.map((profile, index) => [
+      profile.id,
+      { recipientId: secondSelections[profile.id], text: complimentCopy[index] },
+    ]));
+  }
+  return flow;
+}
+
+function analyzeBehindDittoSelection(groupAnalysis) {
+  if (!groupAnalysis.selected) return { groupAnalysis };
+  const categoryScores = scoreDateCategories(groupAnalysis.selected);
+  const selectedCategory = categoryScores.find((category) => category.feasible);
+  return {
+    groupAnalysis,
+    categoryScores,
+    selectedCategory,
+    schedule: selectedCategory?.schedule,
+  };
+}
+
+function candidateForCurrentGroup() {
+  const hardFilter = groupHardFilter(selectedGroup);
+  return {
+    group: selectedGroup,
+    memberIds: [...selectedIds],
+    hardFilter,
+    ...scoreCompatibilityCandidate(selectedGroup, hardFilter),
+  };
+}
+
+if (!requestedScenarioId && automaticGroupAnalysis?.selected) {
+  behindDittoSelection = analyzeBehindDittoSelection(automaticGroupAnalysis);
+  const selectedCategory = behindDittoSelection.selectedCategory;
+  if (!selectedCategory) {
+    throw new Error("No feasible approved date plan for the calculated group.");
+  }
+  isCafeScenario = selectedCategory.scenarioId === "cafe";
+  isWorkshopScenario = selectedCategory.scenarioId === "workshop";
+  isArcadeScenario = selectedCategory.scenarioId === "arcade";
+  isFairScenario = selectedCategory.scenarioId === "fair";
+  activeDateFlow = createScenarioFlowForGroup(
+    selectedCategory.baseFlow,
+    automaticGroupAnalysis.selected,
+    selectedCategory,
+  );
+} else {
+  activeDateFlow = isWorkshopScenario
+    ? workshopDateFlow
+    : isFairScenario
+      ? fairDateFlow
+    : isArcadeScenario
+      ? arcadeDateFlow
+    : isCafeScenario
+      ? cafeDateFlow
+      : beachDateFlow;
+  const currentCandidate = candidateForCurrentGroup();
+  const categoryScores = scoreDateCategories(currentCandidate);
+  const scenarioId = requestedScenarioId || "dockweiler";
+  behindDittoSelection = {
+    groupAnalysis: {
+      candidatesEvaluated: 1,
+      validCandidates: currentCandidate.hardFilter.valid ? [currentCandidate] : [],
+      selected: currentCandidate,
+    },
+    categoryScores,
+    selectedCategory: categoryScores.find((category) => category.scenarioId === scenarioId)
+      || categoryScores.find((category) => category.scenarioId === "dockweiler"),
+  };
+}
+
+usesRelationshipBooklet = activeDateFlow.preDateFormat === "relationship_booklet";
+usesEligibilityLimitedChoices = isCafeScenario || isWorkshopScenario || isArcadeScenario || isFairScenario;
 
 function createLiveDateState() {
   const participantRecords = Object.fromEntries(selectedIds.map((id) => [id, {
@@ -2116,13 +2821,31 @@ function renderGroupReveal() {
   app.querySelector("[data-next='why']").addEventListener("click", renderWhyGroup);
 }
 
+function groupReasonSignals() {
+  const candidate = behindDittoSelection.groupAnalysis.selected;
+  const availability = candidate.hardFilter.sharedAvailability[0];
+  const relationshipMode = candidate.hardFilter.sharedIntentions.includes(
+    selectSharedRelationshipIntention(candidate.group),
+  )
+    ? selectSharedRelationshipIntention(candidate.group)
+    : candidate.hardFilter.sharedIntentions[0];
+  const rankedSignal = candidate.strongestSignals.find((signal) => (
+    signal !== GROUP_SIGNAL_COPY.relationshipAlignment
+    && signal !== GROUP_SIGNAL_COPY.sharedAvailability
+  )) || GROUP_SIGNAL_COPY.pairingConfigurations;
+  return [
+    `Compatible ${relationshipIntentionLabel(relationshipMode).toLowerCase()} intentions`,
+    availability
+      ? `Shared ${SIMULATED_WEEKDAYS[availability.weekday]} ${availability.daypartLabel.toLowerCase()} availability`
+      : "Shared availability confirmed",
+    rankedSignal.charAt(0).toUpperCase() + rankedSignal.slice(1),
+  ];
+}
+
 function renderWhyGroup() {
   resetTimer();
-  const groupExplanation = isWorkshopScenario
-    ? workshopGroupFormation.explanation
-    : isCafeScenario
-      ? cafeGroupFormation.explanation
-      : explainCandidateGroup(selectedGroup, futurePairingConfigurations(selectedGroup));
+  const signals = groupReasonSignals();
+  const applicationsAnalyzed = behindDittoSelection.groupAnalysis.candidatesEvaluated;
   renderAppScreen(`
     <section class="screen why-screen">
       <div class="why-shell">
@@ -2130,13 +2853,14 @@ function renderWhyGroup() {
           <div class="why-pass-edge"></div>
           <article class="why-pass">
             <header>
-              <h1>why this group?</h1>
+              <h1>why these four</h1>
               <div class="why-portraits">${selectedGroup.map((person) => portrait(person, "why-avatar", person.name)).join("")}</div>
             </header>
-            <div class="reason-stack">
-              <span style="--delay:120ms">shared mode: ${relationshipIntentionLabel(groupExplanation.sharedRelationshipIntention)}</span>
-              <span style="--delay:220ms">the energy won't flatline</span>
-              <span style="--delay:320ms">same wavelength, different stories</span>
+            <div class="reason-copy">
+              <p class="reason-fact">${applicationsAnalyzed} group combinations considered from ${applicants.length} applications.</p>
+              <div class="reason-stack">
+                ${signals.map((signal, index) => `<span style="--delay:${120 + index * 100}ms">${signal}</span>`).join("")}
+              </div>
             </div>
             <button class="primary-action studio-primary" data-next="date">Generate Date<span class="arrow" aria-hidden="true">-&gt;</span></button>
           </article>
@@ -2150,6 +2874,7 @@ function renderWhyGroup() {
 
 function renderDatePlan() {
   resetTimer();
+  const planReasons = behindDittoSelection.selectedCategory.strongestReasons.slice(0, 3);
   renderAppScreen(`
     <section class="screen date-screen">
       <div class="date-shell">
@@ -2162,13 +2887,17 @@ function renderDatePlan() {
                 ${selectedGroup.map((person) => portrait(person, "date-portrait", person.name)).join("")}
               </div>
             </div>
-            <section class="date-details">
+            <section class="date-details date-details-with-reasons">
               <p class="pass-kicker">Group date</p>
               <h1>${activeDateFlow.title}</h1>
               <p class="date-lede">${activeDateFlow.lede || "cook something, chase the sunset, see who stays by the fire."}</p>
               <div class="date-meta">
                 <div><span>Location</span><strong>${activeDateFlow.venue}</strong></div>
                 <div><span>Duration</span><strong>${activeDateFlow.durationLabel || "Approximately 3 Hours"}</strong></div>
+              </div>
+              <div class="plan-reasons">
+                <span>Why this plan</span>
+                ${planReasons.map((reason) => `<p>${reason}</p>`).join("")}
               </div>
               <button class="primary-action studio-primary" data-next="phone">Experience the Date<span class="arrow" aria-hidden="true">-&gt;</span></button>
             </section>
@@ -2807,7 +3536,7 @@ function submitAvailability() {
   const nextSchedule = createSimulatedSchedule(sessionAnchorDate, availabilityResult.sharedAvailability);
   participantState.availabilityByParticipant = availabilityResult.availabilityByParticipant;
   participantState.sharedAvailability = availabilityResult.sharedAvailability;
-  const fairOperatingHours = fairDateFlow.operatingCalendar[nextSchedule.selectedAvailability?.dateKey];
+  const fairOperatingHours = activeDateFlow.operatingCalendar?.[nextSchedule.selectedAvailability?.dateKey];
   const fairEndTimestampMinutes = nextSchedule.liveDateTimestampMinutes + 150;
   const fairOpeningTimestampMinutes = nextSchedule.liveDateTimestampMinutes
     - nextSchedule.selectedAvailability?.startMinute
@@ -2930,7 +3659,7 @@ function showExperienceDetails() {
         `
       : `
         <div><span>Time</span><strong>${scheduledStartTime()}–8:30 PM</strong></div>
-        <div><span>Meet</span><strong>${beachDateFlow.venue}</strong></div>
+        <div><span>Meet</span><strong>${activeDateFlow.venue}</strong></div>
         <div><span>Estimated cost</span><strong>$15–$20</strong></div>
         <div><span>Weather</span><strong>22°C and clear</strong></div>
         <div><span>Wear</span><strong>Something comfortable you can move in</strong></div>
@@ -3928,7 +4657,7 @@ function beginLiveDate() {
 }
 
 function fairAttractionLabel(attractionId) {
-  return fairDateFlow.attractionOptions.find((option) => option.id === attractionId)?.label || attractionId;
+  return activeDateFlow.attractionOptions.find((option) => option.id === attractionId)?.label || attractionId;
 }
 
 function collectFairFlower(checkpointId) {
@@ -3970,7 +4699,7 @@ function fairAttractionChoiceControl(participantId) {
     <div class="fair-private-form">
       <select aria-label="Choose one ride, game, or attraction">
         <option value="">Choose one</option>
-        ${fairDateFlow.attractionOptions.map((option) => (
+        ${activeDateFlow.attractionOptions.map((option) => (
           `<option value="${option.id}">${option.label}</option>`
         )).join("")}
       </select>
@@ -3984,7 +4713,7 @@ function showFairAttractionChoices() {
   if (liveDateState.phaseAppended["fair-attraction-choice"]) return;
   setLiveDatePhase("fair-attraction-choice");
   liveDateState.phaseAppended["fair-attraction-choice"] = true;
-  fairDateFlow.roleAssignments.attractionChoosers.forEach((participantId) => {
+  activeDateFlow.roleAssignments.attractionChoosers.forEach((participantId) => {
     addDateEntries([participantId], [
       incomingDateEntry([
         "Choose one ride, game, or attraction you want to try.",
@@ -3998,12 +4727,12 @@ function showFairAttractionChoices() {
 
 function simulateRemainingFairAttractionChoices() {
   const usedAttractions = new Set(Object.values(liveDateState.fairAttractionChoices));
-  fairDateFlow.roleAssignments.attractionChoosers.forEach((participantId) => {
+  activeDateFlow.roleAssignments.attractionChoosers.forEach((participantId) => {
     if (liveDateState.fairAttractionChoices[participantId]) return;
-    const configuredChoice = fairDateFlow.simulatedResults.attractionChoices[participantId];
+    const configuredChoice = activeDateFlow.simulatedResults.attractionChoices[participantId];
     const choiceId = !usedAttractions.has(configuredChoice)
       ? configuredChoice
-      : fairDateFlow.attractionOptions.find((option) => !usedAttractions.has(option.id))?.id;
+      : activeDateFlow.attractionOptions.find((option) => !usedAttractions.has(option.id))?.id;
     if (!choiceId) return;
     usedAttractions.add(choiceId);
     liveDateState.fairAttractionChoices[participantId] = choiceId;
@@ -4017,11 +4746,11 @@ function simulateRemainingFairAttractionChoices() {
 
 function submitFairAttractionChoice() {
   const participantId = liveDateState.activeParticipantId;
-  if (!fairDateFlow.roleAssignments.attractionChoosers.includes(participantId)) return;
+  if (!activeDateFlow.roleAssignments.attractionChoosers.includes(participantId)) return;
   if (liveDateState.fairAttractionChoices[participantId]) return;
   const control = app.querySelector(`[data-control='fair-attraction-choice-${participantId}']`);
   const choiceId = control?.querySelector("select")?.value;
-  if (!choiceId || !fairDateFlow.attractionOptions.some((option) => option.id === choiceId)) {
+  if (!choiceId || !activeDateFlow.attractionOptions.some((option) => option.id === choiceId)) {
     control.querySelector(".inline-message-validation").textContent = "Choose one experience.";
     return;
   }
@@ -4033,7 +4762,7 @@ function submitFairAttractionChoice() {
   completeLiveDateControl(`fair-attraction-choice-${participantId}`, [participantId]);
   simulateRemainingFairAttractionChoices();
   renderActiveDateThread();
-  if (fairDateFlow.roleAssignments.attractionChoosers.every((id) => liveDateState.fairAttractionChoices[id])) {
+  if (activeDateFlow.roleAssignments.attractionChoosers.every((id) => liveDateState.fairAttractionChoices[id])) {
     liveDateState.fairAttractionChoicesResolved = true;
     scheduleParticipant(showFairAttractionClaims, 800, "live-fair-attraction-claims");
   }
@@ -4074,7 +4803,7 @@ function refreshFairAttractionClaimControl(participantId) {
 function showFairAttractionClaims() {
   if (liveDateState.phaseAppended["fair-attraction-claim"]) return;
   liveDateState.phaseAppended["fair-attraction-claim"] = true;
-  fairDateFlow.roleAssignments.attractionClaimers.forEach((participantId) => {
+  activeDateFlow.roleAssignments.attractionClaimers.forEach((participantId) => {
     addDateEntries([participantId], [
       incomingDateEntry([
         "Two anonymous choices are available.",
@@ -4089,7 +4818,7 @@ function showFairAttractionClaims() {
 
 function claimFairAttraction(button) {
   const participantId = liveDateState.activeParticipantId;
-  const claimers = fairDateFlow.roleAssignments.attractionClaimers;
+  const claimers = activeDateFlow.roleAssignments.attractionClaimers;
   if (
     !claimers.includes(participantId)
     || liveDateState.fairAttractionClaimsResolved
@@ -4114,7 +4843,7 @@ function claimFairAttraction(button) {
   renderActiveDateThread();
   if (!claimers.every((claimerId) => liveDateState.fairAttractionClaims[claimerId])) return;
 
-  fairDateFlow.roleAssignments.attractionChoosers.forEach((chooserId) => {
+  activeDateFlow.roleAssignments.attractionChoosers.forEach((chooserId) => {
     addDateEntries([chooserId], [
       incomingDateEntry(["Your choice was claimed.", "Head there now. You'll meet your partner when you arrive."], simulatedTimeline.currentTimestampMinutes),
     ], "fair-attraction-owner-ready");
@@ -4139,7 +4868,7 @@ function claimFairAttraction(button) {
 function revealFairAttractionPartners() {
   const completionMinutes = advanceLiveDatePhase("fair-attraction-time");
   liveDateState.fairAttractionPairing.forEach((pair) => {
-    const chooserId = pair.find((id) => fairDateFlow.roleAssignments.attractionChoosers.includes(id));
+    const chooserId = pair.find((id) => activeDateFlow.roleAssignments.attractionChoosers.includes(id));
     const attractionId = liveDateState.fairAttractionChoices[chooserId];
     pair.forEach((participantId) => {
       const partnerId = pair.find((id) => id !== participantId);
@@ -4232,7 +4961,7 @@ function showWorkshopRolePick() {
   recordPairingPhase("workshop-role-pick", firstPairing, {
     source: "booklet_selection",
     contactLevel: "low_contact",
-    representatives: [...workshopDateFlow.simulatedResults.rolePickRepresentatives],
+    representatives: [...activeDateFlow.simulatedResults.rolePickRepresentatives],
     pairingConsequence: false,
     observedBy: selectedIds,
   });
@@ -4256,11 +4985,11 @@ function finishWorkshopRolePick() {
     [outgoingDateEntry("Finished", completionMinutes)],
     "result-workshop-role-pick-user",
   );
-  const representatives = workshopDateFlow.simulatedResults.rolePickRepresentatives;
-  const winnerId = workshopDateFlow.simulatedResults.rolePickWinner;
+  const representatives = activeDateFlow.simulatedResults.rolePickRepresentatives;
+  const winnerId = activeDateFlow.simulatedResults.rolePickWinner;
   const winningPair = liveDateState.firstPairing.find((pair) => pair.includes(winnerId));
   const otherPair = liveDateState.firstPairing.find((pair) => !pair.includes(winnerId));
-  const responsibilities = workshopDateFlow.simulatedResults.workshopResponsibilities;
+  const responsibilities = activeDateFlow.simulatedResults.workshopResponsibilities;
   liveDateState.workshopRolePickResult = {
     representatives: [...representatives],
     winnerId,
@@ -4368,7 +5097,7 @@ function showCouplePhotoChallenge() {
     ]);
     return;
   }
-  recordPairingPhase("couple-photo", beachDateFlow.pairings.couplePhoto, {
+  recordPairingPhase("couple-photo", activeDateFlow.pairings.couplePhoto, {
     preserved: false,
     disrupted: true,
     observedBy: selectedIds,
@@ -4376,7 +5105,7 @@ function showCouplePhotoChallenge() {
   appendLiveDatePhase("couple-photo", [
     incomingDateEntry([
       "New pairs.",
-      "Olivia + Lucas and Kayla + Jacob.",
+      `${pairLabel(activeDateFlow.pairings.couplePhoto[0])} and ${pairLabel(activeDateFlow.pairings.couplePhoto[1])}.`,
       "Each pair has eight minutes to take one photo that could convince everyone you've been dating for six months.",
       "The other pair will judge.",
       "The losing pair handles ingredient prep.",
@@ -4394,8 +5123,8 @@ function finishCouplePhotoChallenge() {
   completeLiveDateControl("couple-photo");
   const completionMinutes = advanceLiveDatePhase("couple-photo");
   addDateEntries([liveDateState.activeParticipantId], [outgoingDateEntry("Finished", completionMinutes)], "result-couple-photo-user");
-  const winner = [...beachDateFlow.simulatedResults.couplePhotoWinner];
-  const loser = beachDateFlow.pairings.couplePhoto.find((pair) => !pairIncludes(pair, ...winner));
+  const winner = [...activeDateFlow.simulatedResults.couplePhotoWinner];
+  const loser = activeDateFlow.pairings.couplePhoto.find((pair) => !pairIncludes(pair, ...winner));
   liveDateState.couplePhotoResult = { winner, loser: [...loser] };
   liveDateState.couplePhotoWinningPair = winner;
   liveDateState.couplePhotoLosingPair = [...loser];
@@ -4683,7 +5412,7 @@ function showFairAnonymousCompliments() {
 }
 
 function simulateRemainingFairCompliments() {
-  Object.entries(fairDateFlow.simulatedResults.anonymousCompliments).forEach(([participantId, compliment]) => {
+  Object.entries(activeDateFlow.simulatedResults.anonymousCompliments).forEach(([participantId, compliment]) => {
     if (liveDateState.fairCompliments[participantId]) return;
     liveDateState.fairCompliments[participantId] = { ...compliment };
     addDateEntries([participantId], [
@@ -4877,7 +5606,7 @@ function finishCookoutSetup() {
 
 function showArmWrestling() {
   if (liveDateState.phaseAppended["arm-wrestling"]) return;
-  recordPairingPhase("arm-wrestling", beachDateFlow.pairings.armWrestling, {
+  recordPairingPhase("arm-wrestling", activeDateFlow.pairings.armWrestling, {
     preserved: true,
     disrupted: false,
     observedBy: selectedIds,
@@ -4898,9 +5627,9 @@ function finishArmWrestling() {
   completeLiveDateControl("arm-wrestling");
   const completionMinutes = advanceLiveDatePhase("arm-wrestling");
   addDateEntries([liveDateState.activeParticipantId], [outgoingDateEntry("Finished", completionMinutes)], "result-arm-wrestling-user");
-  const winnerId = beachDateFlow.simulatedResults.armWrestlingWinner;
-  const winningPair = beachDateFlow.pairings.armWrestling.find((pair) => pair.includes(winnerId));
-  const losingPair = beachDateFlow.pairings.armWrestling.find((pair) => !pair.includes(winnerId));
+  const winnerId = activeDateFlow.simulatedResults.armWrestlingWinner;
+  const winningPair = activeDateFlow.pairings.armWrestling.find((pair) => pair.includes(winnerId));
+  const losingPair = activeDateFlow.pairings.armWrestling.find((pair) => !pair.includes(winnerId));
   liveDateState.armWrestlingResult = { winnerId, winningPair: [...winningPair], losingPair: [...losingPair] };
   liveDateState.armWrestlingWinningPair = [...winningPair];
   liveDateState.armWrestlingLosingPair = [...losingPair];
