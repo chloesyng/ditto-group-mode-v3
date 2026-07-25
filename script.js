@@ -208,7 +208,7 @@ const applicants = [
     interestedIn: ["man", "nonbinary"],
     relationshipIntention: "Casual dates, open to more",
     relationshipIntentions: ["casual_dating", "serious_relationship"],
-    scenarioPreferences: ["indoor_exploring_active"],
+    scenarioPreferences: ["indoor_exploring_active", "outdoor_events_activities"],
     preferredDateCategories: ["active", "food-and-drink", "culture-and-nightlife"],
     competitiveness: 5,
     creativity: 3,
@@ -327,7 +327,7 @@ const applicants = [
     interestedIn: ["woman", "nonbinary"],
     relationshipIntention: "Casual dates",
     relationshipIntentions: ["casual_dating"],
-    scenarioPreferences: ["indoor_exploring_active"],
+    scenarioPreferences: ["indoor_exploring_active", "outdoor_events_activities"],
     preferredDateCategories: ["active", "food-and-drink", "culture-and-nightlife"],
     competitiveness: 5,
     creativity: 2,
@@ -406,7 +406,7 @@ const applicants = [
     interestedIn: ["woman", "nonbinary"],
     relationshipIntention: "Casual dating, open to more",
     relationshipIntentions: ["casual_dating"],
-    scenarioPreferences: ["indoor_exploring_active"],
+    scenarioPreferences: ["indoor_exploring_active", "outdoor_events_activities"],
     preferredDateCategories: ["active", "food-and-drink", "culture-and-nightlife"],
     competitiveness: 4,
     creativity: 2,
@@ -525,7 +525,7 @@ const applicants = [
     interestedIn: ["man", "nonbinary"],
     relationshipIntention: "Casual dating, open to a relationship",
     relationshipIntentions: ["casual_dating"],
-    scenarioPreferences: ["indoor_exploring_active"],
+    scenarioPreferences: ["indoor_exploring_active", "outdoor_events_activities"],
     preferredDateCategories: ["active", "food-and-drink", "culture-and-nightlife"],
     competitiveness: 4,
     creativity: 3,
@@ -687,6 +687,7 @@ const groupPhotos = {
   cafeDessert: "assets/groups/cafe-dessert.jpg",
   pastaWorkshop: "assets/groups/workshop-pasta.png",
   arcadeNight: "assets/groups/eastwood-arcade.jpg",
+  fairNight: "assets/groups/pacific-park-night.jpeg",
 };
 
 const approvedDockweilerIds = ["jacob", "olivia", "kayla", "lucas"];
@@ -1187,17 +1188,107 @@ function formDeterministicArcadeGroup(pool = applicants) {
   };
 }
 
+function formDeterministicFairGroup(pool = applicants) {
+  const fairInterestTerms = new Set([
+    "arcades",
+    "farmers markets",
+    "live music",
+    "night markets",
+    "pickup soccer",
+    "volleyball",
+  ]);
+  const eligibleGroups = allFourPersonGroups(pool)
+    .map((group) => {
+      const configurations = futurePairingConfigurations(group);
+      const eligibleMatchCounts = group.map((profile) => (
+        group.filter((candidate) => isFuturePairEligible(profile, candidate)).length
+      ));
+      const sharedAvailability = rollingSharedAvailabilityForGroup(group);
+      const sharedRelationshipIntention = selectSharedRelationshipIntention(group);
+      const genderCounts = group.reduce((counts, profile) => ({
+        ...counts,
+        [profile.gender]: (counts[profile.gender] || 0) + 1,
+      }), {});
+      const activityFit = group.reduce((score, profile) => (
+        score
+        + (profile.preferredDateCategories.includes("active") ? 4 : 0)
+        + (profile.preferredDateCategories.includes("culture-and-nightlife") ? 3 : 0)
+        + profile.interests.filter((interest) => fairInterestTerms.has(interest)).length * 3
+        + profile.competitiveness
+        + profile.creativity
+        + (profile.socialEnergy === "high" ? 2 : profile.socialEnergy === "medium" ? 1 : 0)
+      ), 0);
+      const valid = (
+        group.every((profile) => profile.scenarioPreferences?.includes("outdoor_events_activities"))
+        && genderCounts.woman === 2
+        && genderCounts.man === 2
+        && Boolean(sharedRelationshipIntention)
+        && sharedAvailability.length > 0
+        && eligibleMatchCounts.every((count) => count === 2)
+        && configurations.length >= 2
+        && group.every(supportsLightCloseness)
+      );
+      if (!valid) return undefined;
+      return {
+        group,
+        configurations,
+        sharedRelationshipIntention,
+        sharedAvailability,
+        activityFit,
+        ...scoreCandidateGroup(group, configurations),
+      };
+    })
+    .filter(Boolean)
+    .sort((left, right) => (
+      right.activityFit - left.activityFit
+      || right.score - left.score
+      || left.group.map((profile) => profile.id).join(":")
+        .localeCompare(right.group.map((profile) => profile.id).join(":"))
+    ));
+  const selected = eligibleGroups[0];
+  if (!selected) return undefined;
+  return {
+    memberIds: selected.group.map((profile) => profile.id),
+    members: selected.group,
+    configurations: selected.configurations.map((configuration) => (
+      configuration.map((pair) => pair.map((profile) => profile.id))
+    )),
+    score: selected.score,
+    activityFit: selected.activityFit,
+    sharedRelationshipIntention: selected.sharedRelationshipIntention,
+    sharedAvailability: selected.sharedAvailability,
+    explanation: {
+      ...explainCandidateGroup(selected.group, selected.configurations),
+      scenarioPreference: "outdoor_events_activities",
+      activityFit: selected.group.map((profile) => ({
+        participantId: profile.id,
+        activePreference: profile.preferredDateCategories.includes("active"),
+        outdoorFairInterests: profile.interests.filter((interest) => fairInterestTerms.has(interest)),
+        competitiveness: profile.competitiveness,
+        creativity: profile.creativity,
+        socialEnergy: profile.socialEnergy,
+      })),
+      roleComposition: { women: 2, men: 2 },
+      validRomanticPairingConfigurations: selected.configurations.length,
+    },
+  };
+}
+
 const requestedScenarioId = new URLSearchParams(window.location?.search || "").get("scenario");
 const cafeGroupFormation = formDeterministicCafeGroup();
 const workshopGroupFormation = formDeterministicWorkshopGroup();
 const arcadeGroupFormation = formDeterministicArcadeGroup();
+const fairGroupFormation = formDeterministicFairGroup();
 const isCafeScenario = requestedScenarioId === "cafe" && Boolean(cafeGroupFormation);
 const isWorkshopScenario = requestedScenarioId === "workshop" && Boolean(workshopGroupFormation);
 const isArcadeScenario = requestedScenarioId === "arcade" && Boolean(arcadeGroupFormation);
+const isFairScenario = requestedScenarioId === "fair" && Boolean(fairGroupFormation);
 
-if (isCafeScenario || isWorkshopScenario || isArcadeScenario) {
+if (isCafeScenario || isWorkshopScenario || isArcadeScenario || isFairScenario) {
   const scenarioGroupFormation = isWorkshopScenario
     ? workshopGroupFormation
+    : isFairScenario
+      ? fairGroupFormation
     : isArcadeScenario
       ? arcadeGroupFormation
       : cafeGroupFormation;
@@ -1225,6 +1316,7 @@ window.dittoGroupFormation = Object.freeze({
   cafeScenario: cafeGroupFormation,
   workshopScenario: workshopGroupFormation,
   arcadeScenario: arcadeGroupFormation,
+  fairScenario: fairGroupFormation,
   examples: founderGroupFormationExamples,
   formGroupForApplicant: formDeterministicGroup,
   isPairEligible: (firstId, secondId) => {
@@ -1503,12 +1595,105 @@ const arcadeDateFlow = {
   },
 };
 
-const LOS_ANGELES_AREA_CITIES = new Set(["Los Angeles"]);
+const fairInitialPairing = fairGroupFormation?.configurations[0] || [];
+const fairSecondPairing = fairGroupFormation?.configurations[1] || [];
+const fairCanonicalPhotoSelections = Object.fromEntries(
+  fairInitialPairing.flatMap(([firstId, secondId]) => [
+    [firstId, secondId],
+    [secondId, firstId],
+  ]),
+);
+const fairCanonicalFirstImpressions = Object.fromEntries(
+  fairSecondPairing.flatMap(([firstId, secondId]) => [
+    [firstId, secondId],
+    [secondId, firstId],
+  ]),
+);
+
+const fairDateFlow = {
+  id: "pacific-park-after-dark",
+  category: "outdoor_events_activities",
+  title: "Pacific Park After Dark",
+  venue: "Pacific Park · Santa Monica Pier",
+  venueName: "Pacific Park",
+  neighborhood: "Santa Monica Pier",
+  city: "Santa Monica",
+  venueType: "outdoor_amusement_park",
+  supportedActivity: "rides_games_and_pier",
+  environment: "outdoor amusement park",
+  durationLabel: "Approximately 2.5 Hours",
+  image: groupPhotos.fairNight,
+  lede: "rides, games, ocean air, and enough room to wander into a real conversation.",
+  detailSummary: "Explore Pacific Park in changing pairs, take photos, and spend the evening around the pier.",
+  preDateFormat: fairGroupFormation?.explanation.preDateFormat,
+  roleAssignments: {
+    attractionChoosers: fairGroupFormation?.members
+      .filter((profile) => profile.gender === "woman")
+      .map((profile) => profile.id) || [],
+    attractionClaimers: fairGroupFormation?.members
+      .filter((profile) => profile.gender === "man")
+      .map((profile) => profile.id) || [],
+  },
+  attractionOptions: [
+    { id: "pacific-wheel", label: "Pacific Wheel" },
+    { id: "west-coaster", label: "West Coaster" },
+    { id: "ring-toss", label: "Ring Toss" },
+    { id: "sea-dragon", label: "Sea Dragon" },
+  ],
+  operatingCalendar: Object.fromEntries(rollingAvailabilityDays.map((day) => [
+    day.dateKey,
+    {
+      openMinute: 11 * 60,
+      closeMinute: 23 * 60,
+      source: "Pacific Park official operating calendar",
+    },
+  ])),
+  operatingCalendarSource: "https://pacpark.com/calendar/",
+  pairings: {
+    opening: fairInitialPairing,
+    partnerPhoto: fairSecondPairing,
+  },
+  naturalIntervals: {
+    "fair-attraction-time": 20,
+    "fair-partner-photo": 15,
+    "fair-final-time": 45,
+  },
+  phases: [
+    { id: "arrival", durationMinutes: 10, type: "intro", inputType: "none", shared: true },
+    { id: "fair-flower-mission", durationMinutes: 5, type: "background_task", inputType: "none", shared: true },
+    { id: "fair-attraction-choice", durationMinutes: 0, type: "private_choice", inputType: "activity", waitForAllParticipants: true, shared: false },
+    { id: "fair-attraction-time", durationMinutes: 20, type: "free_time", inputType: "none", shared: true },
+    { id: "first-impression", durationMinutes: 2, type: "private_choice", inputType: "name", waitForAllParticipants: true, shared: false },
+    { id: "fair-partner-photo", durationMinutes: 15, type: "low_contact", inputType: "completion", completionLabel: "Finished", shared: true },
+    { id: "fair-anonymous-compliment", durationMinutes: 2, type: "private_choice", inputType: "compliment", waitForAllParticipants: true, shared: false },
+    { id: "private-window", durationMinutes: 10, type: "private_window", inputType: "name", waitForAllParticipants: true, shared: false },
+    { id: "fair-final-time", durationMinutes: 45, type: "free_time", inputType: "none", shared: true },
+    { id: "final-signal", durationMinutes: 0, delayBeforeMinutes: 0, type: "final_signal", inputType: "name", waitForAllParticipants: true, locksAfterSubmit: true, shared: false },
+    { id: "waiting", durationMinutes: 0, type: "waiting", inputType: "none", shared: false },
+    { id: "midnight-reveal", durationMinutes: 0, type: "midnight_reveal", inputType: "none", shared: false },
+  ],
+  simulatedResults: {
+    photoSelections: fairCanonicalPhotoSelections,
+    firstImpressions: fairCanonicalFirstImpressions,
+    attractionChoices: { kayla: "pacific-wheel", leila: "west-coaster" },
+    anonymousCompliments: {
+      kayla: { recipientId: "marcus", text: "You make everything feel way less awkward." },
+      ethan: { recipientId: "leila", text: "Your energy is actually so easy to be around." },
+      marcus: { recipientId: "kayla", text: "You notice little things in a really sweet way." },
+      leila: { recipientId: "ethan", text: "You're funny without trying too hard." },
+    },
+    privateWindowChoices: { kayla: "marcus", ethan: "leila", marcus: "kayla", leila: "ethan" },
+    finalSignals: { kayla: "marcus", ethan: "leila", marcus: "kayla", leila: "ethan" },
+  },
+};
+
+const LOS_ANGELES_AREA_CITIES = new Set(["Los Angeles", "Santa Monica"]);
 const SUPPORTED_ACTIVITIES_BY_CATEGORY = {
   nature: new Set(["beach_cookout"]),
   indoor_seated: new Set(["dessert_and_coffee"]),
   structured_workshop: new Set(["hands_on_pasta_class"]),
   indoor_exploring_active: new Set(["arcade_games_and_photo_booth"]),
+  outdoor_events_activities: new Set(["rides_games_and_pier"]),
 };
 
 function validateDatePlanVenue(dateFlow) {
@@ -1525,17 +1710,19 @@ function validateDatePlanVenue(dateFlow) {
   return true;
 }
 
-[beachDateFlow, cafeDateFlow, workshopDateFlow, arcadeDateFlow].forEach(validateDatePlanVenue);
+[beachDateFlow, cafeDateFlow, workshopDateFlow, arcadeDateFlow, fairDateFlow].forEach(validateDatePlanVenue);
 
 const activeDateFlow = isWorkshopScenario
   ? workshopDateFlow
+  : isFairScenario
+    ? fairDateFlow
   : isArcadeScenario
     ? arcadeDateFlow
   : isCafeScenario
     ? cafeDateFlow
     : beachDateFlow;
 const usesRelationshipBooklet = activeDateFlow.preDateFormat === "relationship_booklet";
-const usesEligibilityLimitedChoices = isCafeScenario || isWorkshopScenario || isArcadeScenario;
+const usesEligibilityLimitedChoices = isCafeScenario || isWorkshopScenario || isArcadeScenario || isFairScenario;
 
 function createLiveDateState() {
   const participantRecords = Object.fromEntries(selectedIds.map((id) => [id, {
@@ -1581,6 +1768,17 @@ function createLiveDateState() {
     stayLinkedDinnerCompleted: false,
     sharedControllerCompleted: false,
     photoBoothCompleted: false,
+    fairAttractionChoices: {},
+    fairAttractionClaims: {},
+    fairAttractionAssignments: {},
+    fairAttractionPairing: [],
+    fairAttractionChoicesResolved: false,
+    fairAttractionClaimsResolved: false,
+    fairPartnerPhotoCompleted: false,
+    fairCompliments: {},
+    fairComplimentsResolved: false,
+    fairFlowerCheckpoints: [],
+    fairFlowerMissionCompleted: false,
     ingredientPreparationPair: undefined,
     armWrestlingResult: undefined,
     armWrestlingWinningPair: undefined,
@@ -2332,6 +2530,10 @@ function handleParticipantAction(event) {
     "match-finished": finishArmWrestling,
     "stay-linked-finished": finishStayLinked,
     "photo-booth-finished": finishPhotoBoothMemeRemake,
+    "fair-attraction-choice-submit": submitFairAttractionChoice,
+    "fair-attraction-claim": claimFairAttraction,
+    "fair-partner-photo-finished": finishFairPartnerPhoto,
+    "fair-compliment-submit": submitFairCompliment,
     "private-window-submit": submitPrivateWindowName,
     "final-signal-submit": submitFinalSignalName,
     "fast-forward-midnight": fastForwardToMidnight,
@@ -2605,7 +2807,21 @@ function submitAvailability() {
   const nextSchedule = createSimulatedSchedule(sessionAnchorDate, availabilityResult.sharedAvailability);
   participantState.availabilityByParticipant = availabilityResult.availabilityByParticipant;
   participantState.sharedAvailability = availabilityResult.sharedAvailability;
-  if (!Number.isFinite(nextSchedule.liveDateTimestampMinutes)) {
+  const fairOperatingHours = fairDateFlow.operatingCalendar[nextSchedule.selectedAvailability?.dateKey];
+  const fairEndTimestampMinutes = nextSchedule.liveDateTimestampMinutes + 150;
+  const fairOpeningTimestampMinutes = nextSchedule.liveDateTimestampMinutes
+    - nextSchedule.selectedAvailability?.startMinute
+    + fairOperatingHours?.openMinute;
+  const fairClosingTimestampMinutes = nextSchedule.liveDateTimestampMinutes
+    - nextSchedule.selectedAvailability?.startMinute
+    + fairOperatingHours?.closeMinute;
+  const venueScheduleIsValid = !isFairScenario || (
+    Boolean(fairOperatingHours)
+    && Number.isFinite(nextSchedule.liveDateTimestampMinutes)
+    && nextSchedule.liveDateTimestampMinutes >= fairOpeningTimestampMinutes
+    && fairEndTimestampMinutes <= fairClosingTimestampMinutes
+  );
+  if (!Number.isFinite(nextSchedule.liveDateTimestampMinutes) || !venueScheduleIsValid) {
     const status = app.querySelector("[data-availability-status]");
     if (status) status.textContent = "That time doesn't line up with everyone yet. Add another day or time.";
     return;
@@ -2673,7 +2889,17 @@ function showExperienceDetails() {
   setParticipantScreen(15);
   const card = app.querySelector("[data-experience-card]");
   card.classList.add("is-expanded");
-  const experienceFacts = isArcadeScenario
+  const experienceFacts = isFairScenario
+    ? `
+        <div><span>Time</span><strong>${scheduledStartTime()}–${formatSimulatedTime(simulatedSchedule.liveDateTimestampMinutes + 150)}</strong></div>
+        <div><span>Meet</span><strong>${activeDateFlow.venue}</strong></div>
+        <div><span>Estimated cost</span><strong>$25–$45</strong></div>
+        <div><span>Setting</span><strong>Outdoor rides · Games · Pier</strong></div>
+        <div><span>Wear</span><strong>Comfortable shoes and a light layer</strong></div>
+        <div><span>Bring</span><strong>Water and a charged phone</strong></div>
+        <div><span>Getting there</span><strong>Metro or rideshare · allow 35–50 minutes</strong></div>
+      `
+    : isArcadeScenario
     ? `
         <div><span>Time</span><strong>${scheduledStartTime()}–${formatSimulatedTime(simulatedSchedule.liveDateTimestampMinutes + 120)}</strong></div>
         <div><span>Meet</span><strong>${activeDateFlow.venue}</strong></div>
@@ -2711,7 +2937,9 @@ function showExperienceDetails() {
         <div><span>Bring</span><strong>A light hoodie and water</strong></div>
         <div><span>Getting there</span><strong>Rideshare from UCLA · allow 35–45 minutes</strong></div>
         `;
-  const experiencePreview = isArcadeScenario
+  const experiencePreview = isFairScenario
+    ? "<span>Meet the group</span><span>Anonymous opening</span><span>Rides and games</span><span>Photos in new pairs</span><span>Open fair time</span>"
+    : isArcadeScenario
     ? "<span>Meet the group</span><span>Anonymous opening</span><span>Arcade showdown</span><span>Play in new pairs</span><span>Photo booth finish</span>"
     : isWorkshopScenario
     ? "<span>Meet the group</span><span>Anonymous opening</span><span>Fresh pasta workshop</span><span>Dinner together</span><span>Final group moment</span>"
@@ -3077,7 +3305,9 @@ function renderOneDayReminder() {
   setSimulatedTime(simulatedSchedule.dayBeforeTimestampMinutes);
   appendTimeDivider();
   const liveDateDayLabel = relativeSimulatedDayLabel(simulatedSchedule.liveDateTimestampMinutes);
-  const scenarioReminderLines = isWorkshopScenario
+  const scenarioReminderLines = isFairScenario
+    ? ["Pacific Park is open for your full date window.", "Wear comfortable shoes and bring a light layer."]
+    : isWorkshopScenario
     ? ["Your workshop spots are reserved.", "Come ready to cook and eat."]
     : isArcadeScenario
       ? ["The arcade opens at six.", "Bring a valid photo ID. The venue is 21+."]
@@ -3108,7 +3338,7 @@ function showReminderDetails(button) {
     <div class="message-row attachment-row">
       <div class="compact-reminder-card">
         <img src="${activeDateFlow.image}" alt="${activeDateFlow.title}">
-        <div><strong>${simulatedWeekdayLabel(simulatedSchedule.liveDateTimestampMinutes)} · ${scheduledStartTime()}</strong><span>${activeDateFlow.venue}</span><span>${isWorkshopScenario ? "Teaching kitchen · Fresh pasta" : isArcadeScenario ? "Arcade bar · Bring photo ID" : isCafeScenario ? "Indoor table · Dessert and coffee" : "22°C and clear · Bring a light hoodie"}</span></div>
+        <div><strong>${simulatedWeekdayLabel(simulatedSchedule.liveDateTimestampMinutes)} · ${scheduledStartTime()}</strong><span>${activeDateFlow.venue}</span><span>${isFairScenario ? "Outdoor rides · Games · Pier" : isWorkshopScenario ? "Teaching kitchen · Fresh pasta" : isArcadeScenario ? "Arcade bar · Bring photo ID" : isCafeScenario ? "Indoor table · Dessert and coffee" : "22°C and clear · Bring a light hoodie"}</span></div>
       </div>
     </div>
   `);
@@ -3370,6 +3600,50 @@ function appendPendingNonIncomingDateEntries(conversation, entries) {
   }
 }
 
+function pendingPovControlIds(participantId) {
+  return [
+    `fair-attraction-choice-${participantId}`,
+    `fair-attraction-claim-${participantId}`,
+    `first-impression-${participantId}`,
+    `fair-compliment-${participantId}`,
+    `private-window-${participantId}`,
+    `final-signal-${participantId}`,
+    `instagram-sharing-${participantId}`,
+  ];
+}
+
+function pendingPovControlId(participantId) {
+  const record = liveDateRecord(participantId);
+  return pendingPovControlIds(participantId).find((controlId) => (
+    record.messages.some((entry) => (
+      entry.type === "control"
+      && entry.controlId === controlId
+      && !entry.completed
+    ))
+  ));
+}
+
+function updatePovPendingActionBadges() {
+  app.querySelectorAll("[data-pov-id]").forEach((button) => {
+    const participantId = button.dataset.povId;
+    const controlId = pendingPovControlId(participantId);
+    const activeControlIsVisible = (
+      participantId !== liveDateState.activeParticipantId
+      || !controlId
+      || Boolean(app.querySelector(`[data-control='${controlId}']`))
+    );
+    const hasPendingAction = Boolean(controlId && activeControlIsVisible);
+    button.classList.toggle("has-pending-action", hasPendingAction);
+    if (hasPendingAction) {
+      button.dataset.pendingAction = "true";
+      button.setAttribute("aria-label", `${personById(participantId).name}, action waiting`);
+      return;
+    }
+    delete button.dataset.pendingAction;
+    button.setAttribute("aria-label", personById(participantId).name);
+  });
+}
+
 function renderActiveDateThread() {
   const participantId = liveDateState.activeParticipantId;
   const record = liveDateRecord(participantId);
@@ -3407,6 +3681,7 @@ function renderActiveDateThread() {
             ) {
               conversation.insertAdjacentHTML("beforeend", renderDateEntry(nextEntry));
               appendPendingNonIncomingDateEntries(conversation, record.messages);
+              updatePovPendingActionBadges();
               refreshSimulatedTimelineLabels();
               scrollParticipantThread();
               conversation.dataset.liveReading = participantId;
@@ -3435,6 +3710,7 @@ function renderActiveDateThread() {
   app.querySelectorAll("[data-pov-id]").forEach((button) => {
     button.classList.toggle("is-active", button.dataset.povId === participantId);
   });
+  updatePovPendingActionBadges();
   const header = app.querySelector(".messages-wordmark");
   if (header) header.textContent = `Ditto · ${personById(participantId).name}`;
   refreshSimulatedTimelineLabels();
@@ -3631,6 +3907,8 @@ function beginLiveDate() {
   scheduleParticipant(
     isWorkshopScenario
       ? showWorkshopRolePick
+      : isFairScenario
+        ? showFairFlowerMission
       : isArcadeScenario
         ? showSharedControllerShowdown
       : isCafeScenario
@@ -3639,12 +3917,255 @@ function beginLiveDate() {
     1900,
     isWorkshopScenario
       ? "live-workshop-role-pick"
+      : isFairScenario
+        ? "live-fair-flower-mission"
       : isArcadeScenario
         ? "live-arcade-shared-controller"
       : isCafeScenario
         ? "live-cafe-couple-photo"
         : "live-linked-dodgeball",
   );
+}
+
+function fairAttractionLabel(attractionId) {
+  return fairDateFlow.attractionOptions.find((option) => option.id === attractionId)?.label || attractionId;
+}
+
+function collectFairFlower(checkpointId) {
+  if (liveDateState.fairFlowerCheckpoints.includes(checkpointId)) return;
+  liveDateState.fairFlowerCheckpoints.push(checkpointId);
+  if (liveDateState.fairFlowerCheckpoints.length < 3 || liveDateState.fairFlowerMissionCompleted) return;
+  liveDateState.fairFlowerMissionCompleted = true;
+  addSharedDateEntries([
+    incomingDateEntry(["All three flowers found."], simulatedTimeline.currentTimestampMinutes),
+  ], "fair-flower-mission-complete");
+}
+
+function showFairFlowerMission() {
+  if (liveDateState.phaseAppended["fair-flower-mission"]) return;
+  advanceLiveDatePhase("arrival");
+  recordPairingPhase("fair-flower-mission", liveDateState.firstPairing, {
+    source: usesRelationshipBooklet ? "booklet_selection" : "photo_selection",
+    backgroundTask: true,
+    pairingCheckpoints: 3,
+    winner: false,
+    score: false,
+    observedBy: selectedIds,
+  });
+  appendLiveDatePhase("fair-flower-mission", [
+    incomingDateEntry([
+      "Before the date ends, collect three flowers from three partner booths around the fair.",
+      "At each stop, interact with the worker to receive one.",
+      "You can complete this while you explore the fair.",
+    ]),
+  ]);
+  scheduleParticipant(() => {
+    advanceLiveDatePhase("fair-flower-mission");
+    showFairAttractionChoices();
+  }, 800, "live-fair-attraction-choices");
+}
+
+function fairAttractionChoiceControl(participantId) {
+  return `
+    <div class="fair-private-form">
+      <select aria-label="Choose one ride, game, or attraction">
+        <option value="">Choose one</option>
+        ${fairDateFlow.attractionOptions.map((option) => (
+          `<option value="${option.id}">${option.label}</option>`
+        )).join("")}
+      </select>
+      <p class="inline-message-validation" aria-live="polite"></p>
+      <button class="message-action primary" data-participant-action="fair-attraction-choice-submit" data-choice-owner="${participantId}">Send</button>
+    </div>
+  `;
+}
+
+function showFairAttractionChoices() {
+  if (liveDateState.phaseAppended["fair-attraction-choice"]) return;
+  setLiveDatePhase("fair-attraction-choice");
+  liveDateState.phaseAppended["fair-attraction-choice"] = true;
+  fairDateFlow.roleAssignments.attractionChoosers.forEach((participantId) => {
+    addDateEntries([participantId], [
+      incomingDateEntry([
+        "Choose one ride, game, or attraction you want to try.",
+        "Your choice will stay anonymous. Don’t tell anyone what you picked.",
+      ]),
+      controlDateEntry(`fair-attraction-choice-${participantId}`, fairAttractionChoiceControl(participantId)),
+    ], "phase-fair-attraction-choice");
+  });
+  renderActiveDateThread();
+}
+
+function simulateRemainingFairAttractionChoices() {
+  const usedAttractions = new Set(Object.values(liveDateState.fairAttractionChoices));
+  fairDateFlow.roleAssignments.attractionChoosers.forEach((participantId) => {
+    if (liveDateState.fairAttractionChoices[participantId]) return;
+    const configuredChoice = fairDateFlow.simulatedResults.attractionChoices[participantId];
+    const choiceId = !usedAttractions.has(configuredChoice)
+      ? configuredChoice
+      : fairDateFlow.attractionOptions.find((option) => !usedAttractions.has(option.id))?.id;
+    if (!choiceId) return;
+    usedAttractions.add(choiceId);
+    liveDateState.fairAttractionChoices[participantId] = choiceId;
+    addDateEntries([participantId], [
+      outgoingDateEntry(fairAttractionLabel(choiceId), simulatedTimeline.currentTimestampMinutes),
+      incomingDateEntry(["Locked.", "Your choice stays private for now."], simulatedTimeline.currentTimestampMinutes),
+    ], "fair-attraction-choice-simulated");
+    completeLiveDateControl(`fair-attraction-choice-${participantId}`, [participantId]);
+  });
+}
+
+function submitFairAttractionChoice() {
+  const participantId = liveDateState.activeParticipantId;
+  if (!fairDateFlow.roleAssignments.attractionChoosers.includes(participantId)) return;
+  if (liveDateState.fairAttractionChoices[participantId]) return;
+  const control = app.querySelector(`[data-control='fair-attraction-choice-${participantId}']`);
+  const choiceId = control?.querySelector("select")?.value;
+  if (!choiceId || !fairDateFlow.attractionOptions.some((option) => option.id === choiceId)) {
+    control.querySelector(".inline-message-validation").textContent = "Choose one experience.";
+    return;
+  }
+  liveDateState.fairAttractionChoices[participantId] = choiceId;
+  addDateEntries([participantId], [
+    outgoingDateEntry(fairAttractionLabel(choiceId), simulatedTimeline.currentTimestampMinutes),
+    incomingDateEntry(["Locked.", "Your choice stays private for now."], simulatedTimeline.currentTimestampMinutes),
+  ], "fair-attraction-choice-user");
+  completeLiveDateControl(`fair-attraction-choice-${participantId}`, [participantId]);
+  simulateRemainingFairAttractionChoices();
+  renderActiveDateThread();
+  if (fairDateFlow.roleAssignments.attractionChoosers.every((id) => liveDateState.fairAttractionChoices[id])) {
+    liveDateState.fairAttractionChoicesResolved = true;
+    scheduleParticipant(showFairAttractionClaims, 800, "live-fair-attraction-claims");
+  }
+}
+
+function fairAttractionClaimControl(participantId) {
+  const openingPartnerId = liveDateState.firstPairing
+    .find((pair) => pair.includes(participantId))
+    ?.find((id) => id !== participantId);
+  const ownerByAttraction = Object.fromEntries(
+    Object.entries(liveDateState.fairAttractionChoices)
+      .map(([ownerId, attractionId]) => [attractionId, ownerId]),
+  );
+  const anonymousChoices = Object.values(liveDateState.fairAttractionChoices)
+    .sort((first, second) => (
+      Number(ownerByAttraction[first] === openingPartnerId)
+      - Number(ownerByAttraction[second] === openingPartnerId)
+      || fairAttractionLabel(first).localeCompare(fairAttractionLabel(second))
+    ));
+  return `
+    <div class="fair-attraction-options">
+      ${anonymousChoices.map((attractionId) => `
+        <button class="message-action secondary" data-participant-action="fair-attraction-claim" data-attraction-id="${attractionId}" ${liveDateState.fairAttractionAssignments[attractionId] ? "disabled" : ""}>
+          ${fairAttractionLabel(attractionId)}
+        </button>
+      `).join("")}
+    </div>
+  `;
+}
+
+function refreshFairAttractionClaimControl(participantId) {
+  const entry = liveDateRecord(participantId).messages.find((item) => (
+    item.type === "control" && item.controlId === `fair-attraction-claim-${participantId}`
+  ));
+  if (entry && !entry.completed) entry.html = fairAttractionClaimControl(participantId);
+}
+
+function showFairAttractionClaims() {
+  if (liveDateState.phaseAppended["fair-attraction-claim"]) return;
+  liveDateState.phaseAppended["fair-attraction-claim"] = true;
+  fairDateFlow.roleAssignments.attractionClaimers.forEach((participantId) => {
+    addDateEntries([participantId], [
+      incomingDateEntry([
+        "Two anonymous choices are available.",
+        "Pick one before the other person does.",
+        "You won’t know who chose it until you arrive.",
+      ]),
+      controlDateEntry(`fair-attraction-claim-${participantId}`, fairAttractionClaimControl(participantId)),
+    ], "phase-fair-attraction-claim");
+  });
+  renderActiveDateThread();
+}
+
+function claimFairAttraction(button) {
+  const participantId = liveDateState.activeParticipantId;
+  const claimers = fairDateFlow.roleAssignments.attractionClaimers;
+  if (
+    !claimers.includes(participantId)
+    || liveDateState.fairAttractionClaimsResolved
+    || liveDateState.fairAttractionClaims[participantId]
+  ) return;
+  const attractionId = button.dataset.attractionId;
+  const availableAttractions = Object.values(liveDateState.fairAttractionChoices);
+  if (
+    !availableAttractions.includes(attractionId)
+    || liveDateState.fairAttractionAssignments[attractionId]
+  ) return;
+  liveDateState.fairAttractionClaims[participantId] = attractionId;
+  liveDateState.fairAttractionAssignments[attractionId] = participantId;
+  addDateEntries([participantId], [
+    outgoingDateEntry(fairAttractionLabel(attractionId), simulatedTimeline.currentTimestampMinutes),
+    incomingDateEntry(["Locked.", "Head there now. You'll meet the person who chose it when you arrive."], simulatedTimeline.currentTimestampMinutes),
+  ], "fair-attraction-claim-result");
+  completeLiveDateControl(`fair-attraction-claim-${participantId}`, [participantId]);
+  claimers
+    .filter((claimerId) => !liveDateState.fairAttractionClaims[claimerId])
+    .forEach(refreshFairAttractionClaimControl);
+  renderActiveDateThread();
+  if (!claimers.every((claimerId) => liveDateState.fairAttractionClaims[claimerId])) return;
+
+  fairDateFlow.roleAssignments.attractionChoosers.forEach((chooserId) => {
+    addDateEntries([chooserId], [
+      incomingDateEntry(["Your choice was claimed.", "Head there now. You'll meet your partner when you arrive."], simulatedTimeline.currentTimestampMinutes),
+    ], "fair-attraction-owner-ready");
+  });
+  liveDateState.fairAttractionPairing = Object.entries(liveDateState.fairAttractionChoices)
+    .map(([chooserId, chosenAttractionId]) => [
+      chooserId,
+      liveDateState.fairAttractionAssignments[chosenAttractionId],
+    ]);
+  liveDateState.fairAttractionClaimsResolved = true;
+  collectFairFlower("attraction-route");
+  recordPairingPhase("fair-attraction-time", liveDateState.fairAttractionPairing, {
+    source: "anonymous_activity_claim",
+    ownerHiddenUntilArrival: true,
+    observedBy: selectedIds,
+  });
+  setLiveDatePhase("fair-attraction-time");
+  liveDateState.phaseAppended["fair-attraction-time"] = true;
+  scheduleParticipant(revealFairAttractionPartners, 800, "live-fair-attraction-arrival");
+}
+
+function revealFairAttractionPartners() {
+  const completionMinutes = advanceLiveDatePhase("fair-attraction-time");
+  liveDateState.fairAttractionPairing.forEach((pair) => {
+    const chooserId = pair.find((id) => fairDateFlow.roleAssignments.attractionChoosers.includes(id));
+    const attractionId = liveDateState.fairAttractionChoices[chooserId];
+    pair.forEach((participantId) => {
+      const partnerId = pair.find((id) => id !== participantId);
+      addDateEntries([participantId], [
+        incomingDateEntry([
+          "You're here.",
+          `${personById(partnerId).name} is your partner for ${fairAttractionLabel(attractionId)}.`,
+        ], completionMinutes),
+      ], "fair-attraction-partner-reveal");
+    });
+  });
+  renderActiveDateThread();
+  scheduleParticipant(() => {
+    addSharedDateEntries([incomingDateEntry(["Occupation unlocked."], completionMinutes)], "fair-occupation-unlock");
+    renderActiveDateThread();
+  }, 700, "live-fair-occupation-unlock");
+  scheduleParticipant(() => {
+    addSharedDateEntries([incomingDateEntry([
+      "You can tell the group what you do or what you're studying now. Keep your age and contact details private.",
+    ], completionMinutes)], "fair-occupation-unlock-followup");
+    renderActiveDateThread();
+  }, 1050, "live-fair-occupation-unlock-followup");
+  scheduleParticipant(() => {
+    advanceSimulatedTime(9);
+    showFirstImpression();
+  }, 1450, "live-fair-first-impression");
 }
 
 function showSharedControllerShowdown() {
@@ -3974,7 +4495,10 @@ function pairingConfigurationKey(configuration) {
 function resolveFirstImpressions() {
   if (liveDateState.firstImpressionsResolved) return;
   advanceLiveDatePhase("first-impression");
-  const firstPairingKey = pairingConfigurationKey(liveDateState.firstPairing);
+  const previousPairing = isFairScenario
+    ? liveDateState.fairAttractionPairing
+    : liveDateState.firstPairing;
+  const firstPairingKey = pairingConfigurationKey(previousPairing);
   const freshConfigurations = validPairingConfigurations()
     .filter((configuration) => pairingConfigurationKey(configuration) !== firstPairingKey)
     .sort((left, right) => {
@@ -3991,6 +4515,11 @@ function resolveFirstImpressions() {
   liveDateState.eyeContactPairing = nextPairing.map((pair) => [...pair]);
   liveDateState.firstImpressionsResolved = true;
   scheduleParticipant(() => {
+    if (isFairScenario) {
+      advanceSimulatedTime(2);
+      showFairPartnerPhoto();
+      return;
+    }
     if (isArcadeScenario) {
       showArcadeFreshPairing();
       return;
@@ -4002,7 +4531,7 @@ function resolveFirstImpressions() {
     }
     advanceNaturalTime("eye-contact");
     showEyeContact();
-  }, 800, isArcadeScenario ? "live-arcade-fresh-pairing" : isWorkshopScenario ? "live-sensory-kitchen" : "live-eye-contact");
+  }, 800, isFairScenario ? "live-fair-partner-photo" : isArcadeScenario ? "live-arcade-fresh-pairing" : isWorkshopScenario ? "live-sensory-kitchen" : "live-eye-contact");
 }
 
 function submitFirstImpression() {
@@ -4079,6 +4608,142 @@ function showArcadeFreshPairing() {
     advanceSimulatedTime(9);
     showPrivateWindow();
   }, 1450, "live-arcade-private-window");
+}
+
+function showFairPartnerPhoto() {
+  if (liveDateState.phaseAppended["fair-partner-photo"]) return;
+  recordPairingPhase("fair-partner-photo", liveDateState.eyeContactPairing, {
+    source: "private_first_impression",
+    freshRematch: pairingConfigurationKey(liveDateState.eyeContactPairing)
+      !== pairingConfigurationKey(liveDateState.fairAttractionPairing),
+    contactLevel: "low_contact",
+    publicPostingRequired: false,
+    winner: false,
+    pairingConsequence: false,
+    observedBy: selectedIds,
+  });
+  appendLiveDatePhase("fair-partner-photo", [
+    incomingDateEntry([
+      "New pairs.",
+      `${pairLabel(liveDateState.eyeContactPairing[0])} and ${pairLabel(liveDateState.eyeContactPairing[1])}.`,
+      "Take photos of your partner until you get one they genuinely like and would actually post.",
+      "Your partner decides when you’re finished.",
+    ]),
+    controlDateEntry("fair-partner-photo", `<div class="message-actions"><button class="message-action primary" data-participant-action="fair-partner-photo-finished">Finished</button></div>`),
+  ]);
+}
+
+function finishFairPartnerPhoto() {
+  if (liveDateState.fairPartnerPhotoCompleted) return;
+  completeLiveDateControl("fair-partner-photo");
+  const completionMinutes = advanceLiveDatePhase("fair-partner-photo");
+  addDateEntries(
+    [liveDateState.activeParticipantId],
+    [outgoingDateEntry("Finished", completionMinutes)],
+    "result-fair-partner-photo-user",
+  );
+  liveDateState.fairPartnerPhotoCompleted = true;
+  liveDateState.completedTasks.push("fair-partner-photo");
+  collectFairFlower("partner-photo-route");
+  renderActiveDateThread();
+  scheduleParticipant(() => {
+    advanceSimulatedTime(5);
+    showFairAnonymousCompliments();
+  }, 800, "live-fair-anonymous-compliments");
+}
+
+function fairComplimentControl(participantId) {
+  const eligibleRecipients = selectedGroup.filter((profile) => (
+    profile.id !== participantId && isMutuallyEligible(participantId, profile.id)
+  ));
+  return `
+    <div class="fair-private-form fair-compliment-form">
+      <select aria-label="Choose an eligible recipient">
+        <option value="">Choose someone</option>
+        ${eligibleRecipients.map((profile) => `<option value="${profile.id}">${profile.name}</option>`).join("")}
+      </select>
+      <textarea maxlength="120" rows="3" placeholder="Write one short compliment" aria-label="Anonymous compliment"></textarea>
+      <p class="inline-message-validation" aria-live="polite"></p>
+      <button class="message-action primary" data-participant-action="fair-compliment-submit">Send</button>
+    </div>
+  `;
+}
+
+function showFairAnonymousCompliments() {
+  if (liveDateState.phaseAppended["fair-anonymous-compliment"]) return;
+  setLiveDatePhase("fair-anonymous-compliment");
+  liveDateState.phaseAppended["fair-anonymous-compliment"] = true;
+  selectedIds.forEach((participantId) => {
+    addDateEntries([participantId], [
+      incomingDateEntry(["Send one short anonymous compliment to anyone here you’re eligible to date."]),
+      controlDateEntry(`fair-compliment-${participantId}`, fairComplimentControl(participantId)),
+    ], "phase-fair-anonymous-compliment");
+  });
+  renderActiveDateThread();
+}
+
+function simulateRemainingFairCompliments() {
+  Object.entries(fairDateFlow.simulatedResults.anonymousCompliments).forEach(([participantId, compliment]) => {
+    if (liveDateState.fairCompliments[participantId]) return;
+    liveDateState.fairCompliments[participantId] = { ...compliment };
+    addDateEntries([participantId], [
+      outgoingDateEntry("Sent anonymously", simulatedTimeline.currentTimestampMinutes),
+    ], "fair-compliment-simulated");
+    completeLiveDateControl(`fair-compliment-${participantId}`, [participantId]);
+  });
+}
+
+function submitFairCompliment() {
+  const participantId = liveDateState.activeParticipantId;
+  if (liveDateState.fairCompliments[participantId]) return;
+  const control = app.querySelector(`[data-control='fair-compliment-${participantId}']`);
+  const recipientId = control?.querySelector("select")?.value;
+  const text = control?.querySelector("textarea")?.value.trim().replace(/\s+/g, " ");
+  const status = control?.querySelector(".inline-message-validation");
+  if (!recipientId || !isMutuallyEligible(participantId, recipientId)) {
+    status.textContent = "Choose one eligible person.";
+    return;
+  }
+  if (!text) {
+    status.textContent = "Write one short compliment.";
+    return;
+  }
+  liveDateState.fairCompliments[participantId] = { recipientId, text };
+  addDateEntries([participantId], [
+    outgoingDateEntry("Sent anonymously", simulatedTimeline.currentTimestampMinutes),
+  ], "fair-compliment-user");
+  completeLiveDateControl(`fair-compliment-${participantId}`, [participantId]);
+  simulateRemainingFairCompliments();
+  renderActiveDateThread();
+  if (selectedIds.every((id) => liveDateState.fairCompliments[id])) {
+    scheduleParticipant(resolveFairCompliments, 800, "live-fair-compliment-delivery");
+  }
+}
+
+function resolveFairCompliments() {
+  if (liveDateState.fairComplimentsResolved) return;
+  const completionMinutes = advanceLiveDatePhase("fair-anonymous-compliment");
+  Object.entries(liveDateState.fairCompliments).forEach(([senderId, compliment]) => {
+    addDateEntries([compliment.recipientId], [
+      incomingDateEntry(["Someone sent you:", `‘${compliment.text}’`], completionMinutes),
+    ], `fair-anonymous-compliment-delivery-${senderId}`);
+  });
+  liveDateState.fairComplimentsResolved = true;
+  renderActiveDateThread();
+  scheduleParticipant(() => {
+    addSharedDateEntries([incomingDateEntry(["Age unlocked."], completionMinutes)], "fair-age-unlock");
+    renderActiveDateThread();
+  }, 700, "live-fair-age-unlock");
+  scheduleParticipant(() => {
+    addSharedDateEntries([incomingDateEntry([
+      "You can share your age now. Contact details stay private until after the date.",
+    ], completionMinutes)], "fair-age-unlock-followup");
+    renderActiveDateThread();
+  }, 1050, "live-fair-age-unlock-followup");
+  scheduleParticipant(() => {
+    advanceSimulatedTime(9);
+    showPrivateWindow();
+  }, 1450, "live-fair-private-window");
 }
 
 function finishEyeContact() {
@@ -4268,7 +4933,9 @@ function nameInputControl(controlId, action, placeholder) {
 
 function showPrivateWindow() {
   if (liveDateState.phaseAppended["private-window"]) return;
-  const precedingPhaseId = isArcadeScenario
+  const precedingPhaseId = isFairScenario
+    ? "fair-anonymous-compliment"
+    : isArcadeScenario
     ? "arcade-free-time"
     : isWorkshopScenario
     ? "workshop-free-time"
@@ -4380,6 +5047,8 @@ function resolvePrivateWindowChoices() {
         `${personById(partnerId).name} asked for ten minutes with you too.`,
         isWorkshopScenario
           ? "Take the side table near the kitchen."
+          : isFairScenario
+            ? "Take a short walk along the pier."
           : isArcadeScenario
             ? "Meet by the photo booth."
           : isCafeScenario
@@ -4404,6 +5073,15 @@ function resolvePrivateWindowChoices() {
   liveDateState.privateWindowResolved = true;
   renderActiveDateThread();
   scheduleParticipant(() => {
+    if (isFairScenario) {
+      collectFairFlower("private-window-route");
+      renderActiveDateThread();
+      setLiveDatePhase("fair-final-time");
+      liveDateState.phaseAppended["fair-final-time"] = true;
+      advanceLiveDatePhase("fair-final-time");
+      showBeachFinalSignal();
+      return;
+    }
     if (isArcadeScenario) {
       showPhotoBoothMemeRemake();
       return;
@@ -4418,7 +5096,7 @@ function resolvePrivateWindowChoices() {
       return;
     }
     showBeachFinalSignal();
-  }, 1200, isArcadeScenario ? "live-photo-booth-meme" : isWorkshopScenario ? "live-stay-linked-dinner" : isCafeScenario ? "live-stay-linked" : "live-final-signal");
+  }, 1200, isFairScenario ? "live-fair-final-signal" : isArcadeScenario ? "live-photo-booth-meme" : isWorkshopScenario ? "live-stay-linked-dinner" : isCafeScenario ? "live-stay-linked" : "live-final-signal");
 }
 
 function memeReferenceControlHtml() {
