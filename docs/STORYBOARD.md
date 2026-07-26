@@ -650,7 +650,7 @@ Do not reveal every task yet.
 
 ## Example
 
-Golden Hour Beach Cookout
+Beach Cookout
 
 An evening designed around collaboration,
 playfulness and meaningful conversations.
@@ -1748,7 +1748,7 @@ Display one visually rich experience card containing:
 
 Example:
 
-Golden Hour Beach Cookout
+Beach Cookout
 
 Cook together, compete a little,
 then stay for the sunset.
@@ -1910,7 +1910,7 @@ Show:
 
 ## Example
 
-Golden Hour Beach Cookout
+Beach Cookout
 
 Friday, July 17
 
@@ -2306,7 +2306,7 @@ Ditto
 
 Tomorrow 👀
 
-Golden Hour Beach Cookout
+Beach Cookout
 
 Friday at 6:00 PM
 

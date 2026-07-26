@@ -169,14 +169,14 @@ const applicants = [
     relationshipIntention: "A relationship",
     relationshipIntentions: ["serious_relationship"],
     scenarioPreferences: ["structured_workshop"],
-    preferredDateCategories: ["creative", "outdoors", "culture-and-nightlife"],
+    preferredDateCategories: ["creative", "food-and-drink", "culture-and-nightlife"],
     competitiveness: 2,
     creativity: 5,
     closenessComfortLevel: "medium",
     instagramHandle: "@oliviamakes",
     location: "Los Angeles, CA",
     intention: "A relationship",
-    interests: ["sunset walks", "ceramics", "playlist swaps"],
+    interests: ["ceramics", "strategy games", "playlist swaps"],
     traits: ["curious", "direct"],
     personalityTraits: ["curious", "direct"],
     energy: "Social, but selective with attention",
@@ -208,7 +208,7 @@ const applicants = [
     interestedIn: ["man", "nonbinary"],
     relationshipIntention: "Casual dates, open to more",
     relationshipIntentions: ["casual_dating", "serious_relationship"],
-    scenarioPreferences: ["indoor_exploring_active", "outdoor_events_activities"],
+    scenarioPreferences: ["indoor_exploring_active", "outdoor_events_activities", "structured_workshop"],
     preferredDateCategories: ["active", "food-and-drink", "culture-and-nightlife"],
     competitiveness: 5,
     creativity: 3,
@@ -288,14 +288,14 @@ const applicants = [
     interestedIn: ["man", "woman", "nonbinary"],
     relationshipIntention: "Friendship first, open to romance",
     relationshipIntentions: ["friendship", "serious_relationship"],
-    preferredDateCategories: ["creative", "outdoors", "culture-and-nightlife"],
+    preferredDateCategories: ["creative", "food-and-drink", "culture-and-nightlife"],
     competitiveness: 1,
     creativity: 4,
-    closenessComfortLevel: "low",
+    closenessComfortLevel: "medium",
     instagramHandle: "@mayafrequencies",
     location: "Los Angeles, CA",
     intention: "Friendship first, open to romance",
-    interests: ["student radio", "bookstores", "picnics"],
+    interests: ["bookstores", "ceramics", "playlist swaps"],
     traits: ["thoughtful", "funny"],
     personalityTraits: ["thoughtful", "funny"],
     energy: "Gentle conversationalist",
@@ -335,7 +335,7 @@ const applicants = [
     instagramHandle: "@ethanafterhours",
     location: "Los Angeles, CA",
     intention: "Casual dates",
-    interests: ["mixology", "arcades", "pickup soccer"],
+    interests: ["mixology", "strategy games", "retro cabinets"],
     traits: ["bold", "spontaneous"],
     personalityTraits: ["bold", "spontaneous"],
     energy: "Fast-start extrovert",
@@ -367,14 +367,14 @@ const applicants = [
     interestedIn: ["woman", "nonbinary"],
     relationshipIntention: "Friendship first, open to a relationship",
     relationshipIntentions: ["friendship", "serious_relationship"],
-    preferredDateCategories: ["creative", "outdoors", "culture-and-nightlife"],
+    preferredDateCategories: ["creative", "food-and-drink", "culture-and-nightlife"],
     competitiveness: 2,
     creativity: 5,
-    closenessComfortLevel: "low",
+    closenessComfortLevel: "medium",
     instagramHandle: "@theo.onfilm",
     location: "Los Angeles, CA",
     intention: "Friendship first, open to a relationship",
-    interests: ["street photography", "bookstores", "picnics"],
+    interests: ["bookstores", "ceramics", "street photography"],
     traits: ["gentle", "perceptive"],
     personalityTraits: ["gentle", "perceptive"],
     energy: "Reserved until there is something real to talk about",
@@ -431,30 +431,30 @@ const applicants = [
     ],
   },
   {
-    id: "nia",
-    name: "Nia",
-    photo: "assets/characters/nia.jpg",
-    image: "assets/characters/nia.jpg",
-    photoPosition: "50% 22%",
+    id: "malik",
+    name: "Malik",
+    photo: "assets/characters/malik.jpg",
+    image: "assets/characters/malik.jpg",
+    photoPosition: "50% 24%",
     university: "USC",
     major: "Urban Planning",
     age: 22,
     occupation: "Urban Planning student",
     occupationOrStudy: "Urban Planning student",
     school: "USC",
-    gender: "woman",
-    interestedIn: ["man", "nonbinary"],
+    gender: "man",
+    interestedIn: ["woman", "nonbinary"],
     relationshipIntention: "Open to a relationship if it develops naturally",
-    relationshipIntentions: ["serious_relationship"],
+    relationshipIntentions: ["casual_dating", "serious_relationship"],
     scenarioPreferences: ["structured_workshop"],
-    preferredDateCategories: ["food-and-drink", "culture-and-nightlife", "outdoors"],
+    preferredDateCategories: ["active", "creative", "food-and-drink", "outdoors"],
     competitiveness: 3,
     creativity: 4,
     closenessComfortLevel: "medium",
-    instagramHandle: "@niasideroutes",
+    instagramHandle: "@maliksideroutes",
     location: "Los Angeles, CA",
     intention: "Open to a relationship if it develops naturally",
-    interests: ["night markets", "live music", "cookouts"],
+    interests: ["street photography", "public art", "neighborhood walks"],
     traits: ["bright", "grounded"],
     personalityTraits: ["bright", "grounded"],
     energy: "Warm group energy with an observant streak",
@@ -486,14 +486,14 @@ const applicants = [
     interestedIn: ["man", "nonbinary"],
     relationshipIntention: "Friendship first, looking for something real",
     relationshipIntentions: ["friendship", "serious_relationship"],
-    preferredDateCategories: ["creative", "outdoors", "culture-and-nightlife"],
+    preferredDateCategories: ["creative", "food-and-drink", "culture-and-nightlife"],
     competitiveness: 1,
     creativity: 5,
-    closenessComfortLevel: "low",
+    closenessComfortLevel: "medium",
     instagramHandle: "@sorasketchbook",
     location: "Los Angeles, CA",
     intention: "Friendship first, looking for something real",
-    interests: ["bookstores", "ceramics", "picnics"],
+    interests: ["bookstores", "ceramics", "playlist swaps"],
     traits: ["imaginative", "patient"],
     personalityTraits: ["imaginative", "patient"],
     energy: "Quietly playful in smaller groups",
@@ -526,7 +526,7 @@ const applicants = [
     relationshipIntention: "Casual dating, open to a relationship",
     relationshipIntentions: ["casual_dating"],
     scenarioPreferences: ["indoor_exploring_active", "outdoor_events_activities"],
-    preferredDateCategories: ["active", "food-and-drink", "culture-and-nightlife"],
+    preferredDateCategories: ["active", "food-and-drink", "culture-and-nightlife", "outdoors"],
     competitiveness: 4,
     creativity: 3,
     closenessComfortLevel: "high",
@@ -647,7 +647,7 @@ const relationshipProfileDetails = {
     relationshipGoal: "explore_chemistry",
     independencePreference: "independent_with_plans",
   },
-  nia: {
+  malik: {
     relationshipValue: "community",
     boundary: "private_conflict",
     communicationExpectation: "direct_and_regular",
@@ -693,7 +693,7 @@ const compatibilityProfileDetails = {
     conversationStyle: "direct",
     preferredActivityIntensity: "medium",
     playfulness: 4,
-    photographyComfort: "high",
+    photographyComfort: "low",
     accessibilityRequirements: [],
   },
   kayla: {
@@ -707,7 +707,7 @@ const compatibilityProfileDetails = {
     conversationStyle: "reflective",
     preferredActivityIntensity: "medium",
     playfulness: 3,
-    photographyComfort: "medium",
+    photographyComfort: "low",
     accessibilityRequirements: [],
   },
   maya: {
@@ -721,7 +721,7 @@ const compatibilityProfileDetails = {
     conversationStyle: "expressive",
     preferredActivityIntensity: "high",
     playfulness: 5,
-    photographyComfort: "high",
+    photographyComfort: "low",
     accessibilityRequirements: [],
   },
   theo: {
@@ -738,9 +738,9 @@ const compatibilityProfileDetails = {
     photographyComfort: "high",
     accessibilityRequirements: [],
   },
-  nia: {
+  malik: {
     conversationStyle: "expressive",
-    preferredActivityIntensity: "medium",
+    preferredActivityIntensity: "high",
     playfulness: 4,
     photographyComfort: "high",
     accessibilityRequirements: [],
@@ -780,6 +780,8 @@ const groupPhotos = {
   arcadeNight: "assets/groups/eastwood-arcade.jpg",
   fairNight: "assets/groups/pacific-park-night.jpeg",
 };
+
+const FEATURED_APPLICANT_IDS = ["jacob", "maya", "ethan", "kayla", "lucas"];
 
 const approvedDockweilerIds = ["jacob", "olivia", "kayla", "lucas"];
 let selectedIds = [...approvedDockweilerIds];
@@ -1140,10 +1142,13 @@ function scoreCompatibilityCandidate(group, hardFilter) {
   return { score, factors, contributions, strongestSignals };
 }
 
-function analyzeCompatibilityGroups(pool = applicants) {
+function analyzeCompatibilityGroups(pool = applicants, requiredApplicantId) {
   const rejectedCandidates = [];
   const validCandidates = [];
-  allFourPersonGroups(pool).forEach((group) => {
+  const candidateGroups = requiredApplicantId
+    ? candidateGroupsFor(requiredApplicantId, pool)
+    : allFourPersonGroups(pool);
+  candidateGroups.forEach((group) => {
     const hardFilter = groupHardFilter(group);
     if (!hardFilter.valid) {
       rejectedCandidates.push({
@@ -1170,6 +1175,7 @@ function analyzeCompatibilityGroups(pool = applicants) {
       [reason]: (counts[reason] || 0) + 1,
     }), {});
   return {
+    requiredApplicantId,
     candidatesEvaluated: validCandidates.length + rejectedCandidates.length,
     validCandidates,
     rejectedCandidates,
@@ -1268,7 +1274,7 @@ const simulatedRelationshipBookletAnswers = {
     loveLanguage: "Doing something helpful without making a whole announcement about it. Bring me food when I’m busy and I’m yours.",
     conflictRepair: "I’d rather say what’s wrong and get through it. Silence makes me invent a way worse story in my head.",
   },
-  nia: {
+  malik: {
     physicalIntimacy: "Hugs and being close feel good first. I like affection, but I need a second before kissing feels normal.",
     dailyCommunication: "I like little texts through the day, especially something funny or specific. Phone calls can be spontaneous.",
     timeTogether: "Twice a week minimum or I start forgetting the vibe. More when life isn’t completely chaotic.",
@@ -1578,16 +1584,25 @@ function formDeterministicFairGroup(pool = applicants) {
   };
 }
 
+const DIRECT_SCENARIO_IDS = new Set(["dockweiler", "cafe", "workshop", "arcade", "fair"]);
 const requestedScenarioId = new URLSearchParams(window.location.search).get("scenario");
+const isDirectScenarioRoute = DIRECT_SCENARIO_IDS.has(requestedScenarioId);
 const cafeGroupFormation = formDeterministicCafeGroup();
 const workshopGroupFormation = formDeterministicWorkshopGroup();
 const arcadeGroupFormation = formDeterministicArcadeGroup();
 const fairGroupFormation = formDeterministicFairGroup();
-const automaticGroupAnalysis = requestedScenarioId ? undefined : analyzeCompatibilityGroups();
 let isCafeScenario = requestedScenarioId === "cafe" && Boolean(cafeGroupFormation);
 let isWorkshopScenario = requestedScenarioId === "workshop" && Boolean(workshopGroupFormation);
 let isArcadeScenario = requestedScenarioId === "arcade" && Boolean(arcadeGroupFormation);
 let isFairScenario = requestedScenarioId === "fair" && Boolean(fairGroupFormation);
+let selectedApplicantId;
+let defaultParticipantId;
+
+function canonicalSelectedParticipantId() {
+  if (selectedApplicantId && selectedIds.includes(selectedApplicantId)) return selectedApplicantId;
+  if (defaultParticipantId && selectedIds.includes(defaultParticipantId)) return defaultParticipantId;
+  return selectedIds[0];
+}
 
 function applySelectedGroup(memberIds) {
   selectedIds = [...memberIds];
@@ -1600,11 +1615,10 @@ function applySelectedGroup(memberIds) {
       }
     }
   }
+  defaultParticipantId = canonicalSelectedParticipantId();
 }
 
-if (!requestedScenarioId && automaticGroupAnalysis?.selected) {
-  applySelectedGroup(automaticGroupAnalysis.selected.memberIds);
-} else if (isCafeScenario || isWorkshopScenario || isArcadeScenario || isFairScenario) {
+if (isCafeScenario || isWorkshopScenario || isArcadeScenario || isFairScenario) {
   const scenarioGroupFormation = isWorkshopScenario
     ? workshopGroupFormation
     : isFairScenario
@@ -1613,9 +1627,15 @@ if (!requestedScenarioId && automaticGroupAnalysis?.selected) {
       ? arcadeGroupFormation
       : cafeGroupFormation;
   applySelectedGroup(scenarioGroupFormation.memberIds);
+} else if (isDirectScenarioRoute) {
+  applySelectedGroup(approvedDockweilerIds);
+} else {
+  selectedIds = [];
+  selectedGroup = [];
+  romanticEligibilityPairs = [];
 }
 
-const defaultParticipantId = selectedIds[0];
+defaultParticipantId = selectedIds[0];
 
 const groupFormationExamples = ["jacob", "maya", "marcus"]
   .map((participantId) => formDeterministicGroup(participantId))
@@ -1628,7 +1648,6 @@ window.dittoGroupFormation = Object.freeze({
   workshopScenario: workshopGroupFormation,
   arcadeScenario: arcadeGroupFormation,
   fairScenario: fairGroupFormation,
-  automaticSelection: automaticGroupAnalysis,
   examples: groupFormationExamples,
   formGroupForApplicant: formDeterministicGroup,
   isPairEligible: (firstId, secondId) => {
@@ -1647,7 +1666,7 @@ const postcardSubmissions = {
   ethan: "assets/postcards/postcard-01.png",
   theo: "assets/postcards/postcard-03.png",
   marcus: "assets/postcards/postcard-03.png",
-  nia: "assets/postcards/postcard-01.png",
+  malik: "assets/postcards/postcard-01.png",
   sora: "assets/postcards/postcard-04.png",
   leila: "assets/postcards/postcard-04.png",
   avery: "assets/postcards/postcard-02.png",
@@ -1663,7 +1682,7 @@ const canonicalDemoPhotoSelections = {
 const beachDateFlow = {
   id: "golden-hour-beach-cookout",
   category: "nature",
-  title: "Golden Hour Beach Cookout",
+  title: "Beach Cookout",
   venue: "Dockweiler State Beach",
   venueName: "Dockweiler State Beach",
   neighborhood: "Playa del Rey",
@@ -1727,7 +1746,7 @@ const cafeCanonicalFirstImpressions = Object.fromEntries(
 const cafeDateFlow = {
   id: "koreatown-dessert-cafe",
   category: "indoor_seated",
-  title: "Dessert After Dark",
+  title: "Dessert Café Date",
   venue: "Sul & Beans · Koreatown",
   venueName: "Sul & Beans",
   neighborhood: "Koreatown",
@@ -1763,8 +1782,8 @@ const cafeDateFlow = {
   simulatedResults: {
     bookletSelections: cafeCanonicalBookletSelections,
     firstImpressions: cafeCanonicalFirstImpressions,
-    privateWindowChoices: { jacob: "nia", kayla: "avery", nia: "jacob", avery: "nia" },
-    finalSignals: { jacob: "nia", kayla: "avery", nia: "jacob", avery: "kayla" },
+    privateWindowChoices: { jacob: "malik", kayla: "avery", malik: "jacob", avery: "malik" },
+    finalSignals: { jacob: "malik", kayla: "avery", malik: "jacob", avery: "kayla" },
   },
 };
 
@@ -1785,7 +1804,7 @@ const workshopCanonicalFirstImpressions = Object.fromEntries(
 const workshopDateFlow = {
   id: "fresh-spaghetti-workshop",
   category: "structured_workshop",
-  title: "Fresh Spaghetti Workshop",
+  title: "Pasta-Making Class",
   venue: "La Scuola at Eataly Los Angeles · Century City",
   venueName: "La Scuola at Eataly Los Angeles",
   neighborhood: "Century City",
@@ -1828,8 +1847,8 @@ const workshopDateFlow = {
       [workshopInitialPairing[0]?.slice().sort().join(":") || "pair-1"]: "make and knead the pasta dough",
       [workshopInitialPairing[1]?.slice().sort().join(":") || "pair-2"]: "prepare the sauce and organize plating",
     },
-    privateWindowChoices: { jacob: "nia", olivia: "lucas", lucas: "nia", nia: "jacob" },
-    finalSignals: { jacob: "nia", olivia: "lucas", lucas: "olivia", nia: "jacob" },
+    privateWindowChoices: { jacob: "malik", olivia: "lucas", lucas: "malik", malik: "jacob" },
+    finalSignals: { jacob: "malik", olivia: "lucas", lucas: "olivia", malik: "jacob" },
   },
 };
 
@@ -1873,7 +1892,7 @@ const arcadeMemeReferences = [
 const arcadeDateFlow = {
   id: "eastwood-arcade-night",
   category: "indoor_exploring_active",
-  title: "Arcade After Dark",
+  title: "Arcade Date",
   venue: "Eastwood · Koreatown",
   venueName: "Eastwood",
   neighborhood: "Koreatown",
@@ -1930,7 +1949,7 @@ const fairCanonicalFirstImpressions = Object.fromEntries(
 const fairDateFlow = {
   id: "pacific-park-after-dark",
   category: "outdoor_events_activities",
-  title: "Pacific Park After Dark",
+  title: "Santa Monica Pier Date",
   venue: "Pacific Park · Santa Monica Pier",
   venueName: "Pacific Park",
   neighborhood: "Santa Monica Pier",
@@ -2386,22 +2405,7 @@ function candidateForCurrentGroup() {
   };
 }
 
-if (!requestedScenarioId && automaticGroupAnalysis?.selected) {
-  behindDittoSelection = analyzeBehindDittoSelection(automaticGroupAnalysis);
-  const selectedCategory = behindDittoSelection.selectedCategory;
-  if (!selectedCategory) {
-    throw new Error("No feasible approved date plan for the calculated group.");
-  }
-  isCafeScenario = selectedCategory.scenarioId === "cafe";
-  isWorkshopScenario = selectedCategory.scenarioId === "workshop";
-  isArcadeScenario = selectedCategory.scenarioId === "arcade";
-  isFairScenario = selectedCategory.scenarioId === "fair";
-  activeDateFlow = createScenarioFlowForGroup(
-    selectedCategory.baseFlow,
-    automaticGroupAnalysis.selected,
-    selectedCategory,
-  );
-} else {
+if (isDirectScenarioRoute) {
   activeDateFlow = isWorkshopScenario
     ? workshopDateFlow
     : isFairScenario
@@ -2424,10 +2428,48 @@ if (!requestedScenarioId && automaticGroupAnalysis?.selected) {
     selectedCategory: categoryScores.find((category) => category.scenarioId === scenarioId)
       || categoryScores.find((category) => category.scenarioId === "dockweiler"),
   };
+  usesRelationshipBooklet = activeDateFlow.preDateFormat === "relationship_booklet";
+  usesEligibilityLimitedChoices = isCafeScenario || isWorkshopScenario || isArcadeScenario || isFairScenario;
+} else {
+  activeDateFlow = undefined;
+  behindDittoSelection = undefined;
+  usesRelationshipBooklet = false;
+  usesEligibilityLimitedChoices = false;
 }
 
-usesRelationshipBooklet = activeDateFlow.preDateFormat === "relationship_booklet";
-usesEligibilityLimitedChoices = isCafeScenario || isWorkshopScenario || isArcadeScenario || isFairScenario;
+function configureCalculatedExperience(applicantId) {
+  const applicant = applicants.find((profile) => profile.id === applicantId);
+  if (!applicant) return false;
+  const groupAnalysis = analyzeCompatibilityGroups(applicants, applicantId);
+  const selection = analyzeBehindDittoSelection(groupAnalysis);
+  if (
+    !selection.selectedCategory
+    || !groupAnalysis.selected?.memberIds.includes(applicantId)
+  ) return false;
+
+  selectedApplicantId = applicantId;
+  applySelectedGroup(groupAnalysis.selected.memberIds);
+  defaultParticipantId = canonicalSelectedParticipantId();
+  behindDittoSelection = selection;
+  const selectedCategory = selection.selectedCategory;
+  isCafeScenario = selectedCategory.scenarioId === "cafe";
+  isWorkshopScenario = selectedCategory.scenarioId === "workshop";
+  isArcadeScenario = selectedCategory.scenarioId === "arcade";
+  isFairScenario = selectedCategory.scenarioId === "fair";
+  activeDateFlow = createScenarioFlowForGroup(
+    selectedCategory.baseFlow,
+    groupAnalysis.selected,
+    selectedCategory,
+  );
+  usesRelationshipBooklet = activeDateFlow.preDateFormat === "relationship_booklet";
+  usesEligibilityLimitedChoices = (
+    isCafeScenario || isWorkshopScenario || isArcadeScenario || isFairScenario
+  );
+  Object.assign(simulatedSchedule, createSimulatedSchedule(sessionAnchorDate));
+  resetParticipantDemoState();
+  syncDemoControls();
+  return true;
+}
 
 function createLiveDateState() {
   const participantRecords = Object.fromEntries(selectedIds.map((id) => [id, {
@@ -2442,7 +2484,7 @@ function createLiveDateState() {
     instagramShareLocked: false,
   }]));
   return {
-    activeParticipantId: defaultParticipantId,
+    activeParticipantId: canonicalSelectedParticipantId(),
     currentPhaseId: undefined,
     phaseStartTimes: {},
     phaseCompletionTimes: {},
@@ -2493,6 +2535,7 @@ function createLiveDateState() {
     finalSignalsResolved: false,
     midnightRevealGenerated: false,
     midnightResults: {},
+    simulatedResult: undefined,
     phaseAppended: {},
     preDateHtmlByParticipant: {},
     participants: participantRecords,
@@ -2524,7 +2567,7 @@ const formationPositions = {
   ethan: { x: 92, y: 49 },
   theo: { x: 8, y: 48 },
   marcus: { x: 91, y: 18 },
-  nia: { x: 7, y: 18 },
+  malik: { x: 7, y: 18 },
   sora: { x: 35, y: 82 },
   leila: { x: 91, y: 82 },
   avery: { x: 54, y: 12 },
@@ -2549,6 +2592,7 @@ function resetTimer() {
 }
 
 function resetParticipantDemoState() {
+  defaultParticipantId = canonicalSelectedParticipantId();
   participantState.screen = 8;
   participantState.availabilityEntries = [];
   participantState.availabilityByParticipant = {};
@@ -2563,15 +2607,25 @@ function resetParticipantDemoState() {
   participantEntrySequence = 0;
   simulatedTimeline.currentTimestampMinutes = simulatedSchedule.preDateStartTimestampMinutes;
   liveDateState = createLiveDateState();
+  syncSimulatedResultBox();
 }
 
 function resetDemo() {
   resetTimer();
   resetParticipantDemoState();
+  if (!isDirectScenarioRoute && selectedApplicantId) {
+    renderGroupFormation();
+    return;
+  }
+  if (!isDirectScenarioRoute) {
+    renderProfileSelector();
+    return;
+  }
   renderLanding();
 }
 
 function jumpToLiveDate() {
+  if (!activeDateFlow || !defaultParticipantId) return;
   if (!Number.isFinite(simulatedSchedule.liveDateTimestampMinutes)) {
     renderPhoneIntro();
     return;
@@ -2579,24 +2633,82 @@ function jumpToLiveDate() {
   renderPhoneIntro({ jumpToLiveDate: true });
 }
 
+function clearCalculatedExperience() {
+  resetTimer();
+  selectedApplicantId = undefined;
+  defaultParticipantId = undefined;
+  selectedIds = [];
+  selectedGroup = [];
+  romanticEligibilityPairs = [];
+  behindDittoSelection = undefined;
+  activeDateFlow = undefined;
+  isCafeScenario = false;
+  isWorkshopScenario = false;
+  isArcadeScenario = false;
+  isFairScenario = false;
+  usesRelationshipBooklet = false;
+  usesEligibilityLimitedChoices = false;
+  Object.assign(simulatedSchedule, createSimulatedSchedule(sessionAnchorDate));
+  resetParticipantDemoState();
+  syncDemoControls();
+  renderProfileSelector();
+}
+
+function syncSimulatedResultBox() {
+  const resultBox = document.querySelector("[data-simulated-result]");
+  if (!resultBox) return;
+  const result = liveDateState?.simulatedResult;
+  resultBox.hidden = !result;
+  const copy = resultBox.querySelector("[data-simulated-result-copy]");
+  if (copy) copy.textContent = result?.text || "";
+}
+
+function setSimulatedResult(taskId, text) {
+  liveDateState.simulatedResult = { taskId, text };
+  syncSimulatedResultBox();
+}
+
+function syncDemoControls() {
+  const jumpControl = document.querySelector("[data-demo-action='jump-live-date']");
+  if (jumpControl) jumpControl.disabled = !activeDateFlow;
+  syncSimulatedResultBox();
+}
+
 function ensurePrototypeDemoControls() {
-  if (document.querySelector("[data-demo-controls]")) return;
-  const controls = document.createElement("aside");
-  controls.className = "prototype-demo-controls";
-  controls.dataset.demoControls = "";
-  controls.setAttribute("aria-label", "Prototype demo controls");
-  controls.innerHTML = `
-    <span>Demo controls</span>
-    <button data-demo-action="jump-live-date">Jump to live date</button>
-    <button data-demo-action="reset-demo">Reset demo</button>
-  `;
-  controls.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-demo-action]");
-    if (!button) return;
-    if (button.dataset.demoAction === "jump-live-date") jumpToLiveDate();
-    if (button.dataset.demoAction === "reset-demo") resetDemo();
-  });
-  app.insertAdjacentElement("afterend", controls);
+  let controls = document.querySelector("[data-demo-controls]");
+  if (!controls) {
+    controls = document.createElement("aside");
+    controls.className = "prototype-demo-controls";
+    controls.dataset.demoControls = "";
+    controls.setAttribute("aria-label", "Prototype demo controls");
+    controls.innerHTML = `
+      <span>Demo controls</span>
+      <button data-demo-action="jump-live-date">Jump to live date</button>
+      <button data-demo-action="reset-demo">Reset demo</button>
+      ${isDirectScenarioRoute ? "" : '<button data-demo-action="explore-another">Explore another experience</button>'}
+    `;
+    controls.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-demo-action]");
+      if (!button) return;
+      if (button.dataset.demoAction === "jump-live-date") jumpToLiveDate();
+      if (button.dataset.demoAction === "reset-demo") resetDemo();
+      if (button.dataset.demoAction === "explore-another") clearCalculatedExperience();
+    });
+    app.insertAdjacentElement("afterend", controls);
+  }
+  if (!document.querySelector("[data-simulated-result]")) {
+    const resultBox = document.createElement("aside");
+    resultBox.className = "prototype-simulated-result";
+    resultBox.dataset.simulatedResult = "";
+    resultBox.setAttribute("aria-label", "Prototype simulated result");
+    resultBox.hidden = true;
+    resultBox.innerHTML = `
+      <span>Simulated result</span>
+      <strong data-simulated-result-copy></strong>
+    `;
+    controls.insertAdjacentElement("afterend", resultBox);
+  }
+  syncDemoControls();
 }
 
 function portrait(person, className, alt = person.name) {
@@ -2622,6 +2734,44 @@ function renderAppScreen(markup) {
     .filter((attribute) => attribute.name !== "class")
     .forEach((attribute) => currentScreen.setAttribute(attribute.name, attribute.value));
   currentScreen.replaceChildren(...nextScreen.childNodes);
+}
+
+function renderProfileSelector() {
+  resetTimer();
+  const featuredApplicants = FEATURED_APPLICANT_IDS.map((id) => personById(id));
+  renderAppScreen(`
+    <section class="screen studio-screen profile-selector-screen">
+      <div class="studio-shell profile-selector-shell">
+        <div class="profile-selector-heading">
+          <h1>Choose someone to follow</h1>
+          <p>See how Ditto builds their group and date.</p>
+        </div>
+        <div class="featured-profile-deck" aria-label="Featured mocked applicants">
+          ${featuredApplicants.map((person, index) => `
+            <button class="application-pass featured-profile-pass" data-featured-applicant="${person.id}" style="--delay:${index * 80}ms;--accent:${person.colorA}">
+              ${portrait(person, "application-photo")}
+              <span class="featured-profile-copy">
+                <span class="featured-profile-identity"><strong>${person.name}</strong><small>${person.age}</small></span>
+                <small class="application-intentions">${relationshipIntentionLabels(person).join(" · ")}</small>
+                <span class="featured-profile-signals">
+                  ${[...person.interests.slice(0, 2), person.personalityTraits[0]].map((value) => `<small>${value}</small>`).join("")}
+                </span>
+              </span>
+              <span class="pass-open" aria-hidden="true">&nearr;</span>
+            </button>
+          `).join("")}
+        </div>
+      </div>
+    </section>
+  `);
+
+  app.querySelectorAll("[data-featured-applicant]").forEach((card) => {
+    card.addEventListener("click", () => {
+      if (configureCalculatedExperience(card.dataset.featuredApplicant)) {
+        renderGroupFormation();
+      }
+    });
+  });
 }
 
 function renderLanding() {
@@ -2907,11 +3057,13 @@ function renderDatePlan() {
     </section>
   `);
 
+  window.scrollTo(0, 0);
   app.querySelector("[data-next='phone']").addEventListener("click", renderPhoneIntro);
 }
 
 function renderPhoneIntro({ jumpToLiveDate: shouldJumpToLiveDate = false } = {}) {
   resetTimer();
+  defaultParticipantId = canonicalSelectedParticipantId();
   resetParticipantDemoState();
 
   renderAppScreen(`
@@ -3300,9 +3452,11 @@ function acceptInvitation() {
 }
 
 function renderMeetYourGroup() {
+  const selfParticipantId = canonicalSelectedParticipantId();
+  defaultParticipantId = selfParticipantId;
   const groupOrder = selectedGroup.slice().sort((first, second) => {
-    if (first.id === defaultParticipantId) return 1;
-    if (second.id === defaultParticipantId) return -1;
+    if (first.id === selfParticipantId) return 1;
+    if (second.id === selfParticipantId) return -1;
     return 0;
   });
 
@@ -3315,10 +3469,10 @@ function renderMeetYourGroup() {
       <div class="message-row attachment-row">
         <div class="participant-browser" aria-label="Meet your group">
           ${groupOrder.map((person, index) => `
-            <article class="participant-profile-card ${person.id === defaultParticipantId ? "is-self" : ""}" style="--delay:${index * 90}ms">
+            <article class="participant-profile-card ${person.id === selfParticipantId ? "is-self" : ""}" style="--delay:${index * 90}ms">
               ${portrait(person, "participant-profile-photo")}
               <div class="participant-profile-copy">
-                <div class="participant-profile-heading"><strong>${person.name}</strong>${person.id === defaultParticipantId ? "<span>You</span>" : ""}</div>
+                <div class="participant-profile-heading"><strong>${person.name}</strong>${person.id === selfParticipantId ? "<span>You</span>" : ""}</div>
                 <small>${person.university}</small>
                 <div class="participant-interest-list">${person.interests.map((interest) => `<span>${interest}</span>`).join("")}</div>
                 <p>${person.energy}.</p>
@@ -4542,17 +4696,13 @@ function postcardRevealFor(participantId) {
   const participantIsOwner = participantId === photoOwner.id;
 
   let intro;
-  let ownerLine;
 
   if (participantIsSelector) {
     intro = "Remember the photo you picked?";
-    ownerLine = `That was ${photoOwner.name}'s.`;
   } else if (participantIsOwner) {
     intro = `${selectedBy.name} picked your photo earlier.`;
-    ownerLine = `${selectedBy.name} selected yours.`;
   } else {
     intro = `${selectedBy.name} picked this photo earlier.`;
-    ownerLine = `It belongs to ${photoOwner.name}.`;
   }
 
   return [
@@ -4560,9 +4710,9 @@ function postcardRevealFor(participantId) {
     controlDateEntry(`postcard-reveal-${participantId}`, `
       <article class="postcard-reveal-pass">
         <img src="${selectedPhoto}" alt="Selected anonymous postcard">
+        <div class="postcard-owner-reveal"><span>Photo selected</span><strong>${photoOwner.name}</strong></div>
       </article>
     `),
-    incomingDateEntry([ownerLine]),
     incomingDateEntry([`${personById(partnerId).name} is your first partner.`]),
   ];
 }
@@ -4574,10 +4724,9 @@ function bookletRevealFor(participantId) {
     incomingDateEntry(["Remember the booklet you picked?"]),
     controlDateEntry(`booklet-reveal-${participantId}`, `
       <article class="postcard-reveal-pass">
-        <div class="postcard-owner-reveal"><span>Booklet selected</span><strong>Anonymous</strong></div>
+        <div class="postcard-owner-reveal"><span>Booklet selected</span><strong>${owner.name}</strong></div>
       </article>
     `),
-    incomingDateEntry([`It belongs to ${owner.name}.`]),
     incomingDateEntry([`${owner.name} is your first partner.`]),
   ];
 }
@@ -5001,9 +5150,8 @@ function finishWorkshopRolePick() {
     [workshopPairKey(otherPair)]: responsibilities[workshopPairKey(otherPair)],
   };
   liveDateState.completedTasks.push("workshop-role-pick");
+  setSimulatedResult("workshop-role-pick", `Winning pair: ${pairLabel(winningPair)}`);
   addSharedDateEntries([incomingDateEntry([
-    `${representatives.map((participantId) => personById(participantId).name).join(" and ")} stepped forward.`,
-    `${personById(winnerId).name} won.`,
     `${pairLabel(winningPair)} chose to ${liveDateState.workshopResponsibilities[workshopPairKey(winningPair)]}.`,
     `${pairLabel(otherPair)} will ${liveDateState.workshopResponsibilities[workshopPairKey(otherPair)]}.`,
     "You have 28 minutes. Work with your pair and keep the conversation going.",
@@ -5058,26 +5206,22 @@ function finishLinkedDodgeball() {
   const loser = liveDateState.firstPairing[1];
   liveDateState.dodgeballResult = { winner, loser: [...loser], score: "5–3" };
   liveDateState.completedTasks.push("linked-dodgeball");
-  addSharedDateEntries([incomingDateEntry([`${pairLabel(winner)} won, 5–3.`], completionMinutes)], "result-linked-dodgeball");
+  setSimulatedResult("linked-dodgeball", `Winning pair: ${pairLabel(winner)} (5–3)`);
   renderActiveDateThread();
-  scheduleParticipant(() => {
-    addSharedDateEntries([incomingDateEntry(["Keep that energy."], completionMinutes)], "result-linked-dodgeball-followup");
-    renderActiveDateThread();
-  }, 350, "live-linked-dodgeball-followup");
   scheduleParticipant(() => {
     addSharedDateEntries([incomingDateEntry(["Occupation unlocked."], completionMinutes)], "occupation-unlock");
     renderActiveDateThread();
-  }, 700, "live-occupation-unlock");
+  }, 350, "live-occupation-unlock");
   scheduleParticipant(() => {
     addSharedDateEntries([incomingDateEntry([
       "You can tell the group what you do or what you're studying now. Keep your age and contact details private.",
     ], completionMinutes)], "occupation-unlock-followup");
     renderActiveDateThread();
-  }, 1050, "live-occupation-unlock-followup");
+  }, 700, "live-occupation-unlock-followup");
   scheduleParticipant(() => {
     advanceNaturalTime("couple-photo");
     showCouplePhotoChallenge();
-  }, 1450, "live-couple-photo");
+  }, 1100, "live-couple-photo");
 }
 
 function showCouplePhotoChallenge() {
@@ -5130,22 +5274,22 @@ function finishCouplePhotoChallenge() {
   liveDateState.couplePhotoLosingPair = [...loser];
   liveDateState.ingredientPreparationPair = [...loser];
   liveDateState.completedTasks.push("couple-photo");
-  addSharedDateEntries([incomingDateEntry([`${pairLabel(winner)} won.`], completionMinutes)], "result-couple-photo");
+  setSimulatedResult("couple-photo", `Winning pair: ${pairLabel(winner)}`);
   renderActiveDateThread();
   scheduleParticipant(() => {
     addSharedDateEntries([incomingDateEntry(["Age unlocked."], completionMinutes)], "age-unlock");
     renderActiveDateThread();
-  }, 700, "live-age-unlock");
+  }, 350, "live-age-unlock");
   scheduleParticipant(() => {
     addSharedDateEntries([incomingDateEntry([
       "You can share your age now. Contact details stay private until after the date.",
     ], completionMinutes)], "age-unlock-followup");
     renderActiveDateThread();
-  }, 1050, "live-age-unlock-followup");
+  }, 700, "live-age-unlock-followup");
   scheduleParticipant(() => {
     advanceNaturalTime("cookout-setup");
     showCookoutSetup();
-  }, 1450, "live-cookout-setup");
+  }, 1100, "live-cookout-setup");
 }
 
 function finishCafeCouplePhotoChallenge() {
@@ -5635,16 +5779,12 @@ function finishArmWrestling() {
   liveDateState.armWrestlingLosingPair = [...losingPair];
   liveDateState.grillDutyPair = [...losingPair];
   liveDateState.completedTasks.push("arm-wrestling");
-  addSharedDateEntries([incomingDateEntry([
-    `${personById(winnerId).name} took it.`,
-    `${pairLabel(losingPair)}, grill duty is yours.`,
-    "Everyone else: keep them company—or don't.",
-  ], completionMinutes)], "result-arm-wrestling");
+  setSimulatedResult("arm-wrestling", `Winning pair: ${pairLabel(winningPair)}`);
   renderActiveDateThread();
   scheduleParticipant(() => {
     advanceNaturalTime("grilling-dinner");
     showGrillingDinner();
-  }, 650, "live-grilling-dinner");
+  }, 350, "live-grilling-dinner");
 }
 
 function showGrillingDinner() {
@@ -6129,4 +6269,8 @@ function switchParticipantPov(button) {
 }
 
 ensurePrototypeDemoControls();
-renderLanding();
+if (isDirectScenarioRoute) {
+  renderLanding();
+} else {
+  renderProfileSelector();
+}
