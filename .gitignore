@@ -13,3 +13,5 @@ dist/
 # Local research recordings are not part of the prototype distribution.
 research/*.MP4
 research/*.mp4
+
+docs/
